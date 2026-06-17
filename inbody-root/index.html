@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="theme-color" content="#0B0F1A"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="InBody"/>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.svg"/>
+  <title>InBody · Jose</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <!-- Recharts + React via CDN -->
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html,body,#root{height:100%;background:#0B0F1A}
+    body{overscroll-behavior:none;-webkit-overflow-scrolling:touch}
+    input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+    input:focus,textarea:focus{outline:none}
+    button:active{opacity:.75}
+    ::-webkit-scrollbar{width:4px;height:4px}
+    ::-webkit-scrollbar-track{background:#0B0F1A}
+    ::-webkit-scrollbar-thumb{background:#1F2D45;border-radius:2px}
+    input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.4)}
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+    .fade-up{animation:fadeUp .25s ease}
+    /* iOS safe areas */
+    .nav-bar{padding-top:env(safe-area-inset-top,0px)}
+    .bottom-nav{padding-bottom:env(safe-area-inset-bottom,0px)}
+    .page{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const { useState, useEffect, useRef, useCallback } = React;
+const {
+  LineChart, Line, AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend
+} = Recharts;
+
+// ── PALETTE ───────────────────────────────────────────────────────────────────
+const C = {
+  bg:"#0B0F1A",surface:"#131929",card:"#1A2236",border:"#1F2D45",
+  accent:"#00D4FF",good:"#22C55E",bad:"#EF4444",warn:"#F59E0B",
+  text:"#E2E8F0",muted:"#64748B",muscle:"#818CF8",fat:"#F97316",
+  water:"#38BDF8",bone:"#A3E635",
+};
+const FM = "'JetBrains Mono','Fira Mono',monospace";
+const FB = "'Inter',sans-serif";
+const KEY = "inbody-pwa-v1";
+
+// ── SEED DATA ─────────────────────────────────────────────────────────────────
+const SEED = [
+  {date:"2025-03-10",weight:91.9,muscleMass:36.7,fatMass:26.9,fatPercent:29.5,waterLiters:47.0,boneMass:4.56,bmi:29.2,visceralFat:11,bmr:1762,inBodyScore:null,notes:"Primera evaluación registrada"},
+  {date:"2025-04-30",weight:91.4,muscleMass:36.8,fatMass:26.4,fatPercent:29.5,waterLiters:47.2,boneMass:4.56,bmi:29.0,visceralFat:10,bmr:1769,inBodyScore:null,notes:""},
+  {date:"2025-07-07",weight:93.2,muscleMass:38.0,fatMass:26.9,fatPercent:28.3,waterLiters:48.8,boneMass:4.56,bmi:29.6,visceralFat:10,bmr:1813,inBodyScore:null,notes:"Mejor punto: mayor músculo y menor %grasa"},
+  {date:"2025-08-19",weight:93.3,muscleMass:36.6,fatMass:28.8,fatPercent:30.8,waterLiters:47.1,boneMass:4.56,bmi:29.6,visceralFat:12,bmr:1766,inBodyScore:null,notes:""},
+  {date:"2025-10-07",weight:92.0,muscleMass:35.9,fatMass:28.7,fatPercent:31.3,waterLiters:46.1,boneMass:4.56,bmi:29.4,visceralFat:12,bmr:1736,inBodyScore:null,notes:""},
+  {date:"2025-11-27",weight:92.6,muscleMass:35.6,fatMass:30.4,fatPercent:32.0,waterLiters:45.9,boneMass:4.56,bmi:29.4,visceralFat:13,bmr:1730,inBodyScore:null,notes:""},
+  {date:"2026-01-22",weight:92.0,muscleMass:34.9,fatMass:29.7,fatPercent:33.1,waterLiters:44.9,boneMass:4.56,bmi:29.2,visceralFat:13,bmr:1700,inBodyScore:null,notes:""},
+  {date:"2026-03-05",weight:92.5,muscleMass:35.7,fatMass:29.2,fatPercent:31.5,waterLiters:46.2,boneMass:4.56,bmi:29.4,visceralFat:12,bmr:1738,inBodyScore:66,notes:"Mejorando desde enero"},
+  {date:"2026-04-23",weight:93.2,muscleMass:36.8,fatMass:28.5,fatPercent:30.5,waterLiters:47.3,boneMass:4.58,bmi:29.6,visceralFat:11,bmr:1768,inBodyScore:69,notes:"Score 69 pts · músculo recuperado · tendencia positiva"},
+];
+
+const EMPTY = {date:new Date().toISOString().slice(0,10),weight:"",muscleMass:"",fatMass:"",fatPercent:"",waterLiters:"",boneMass:"",bmi:"",visceralFat:"",bmr:"",inBodyScore:"",notes:""};
+
+const FIELDS = [
+  {key:"weight",     label:"Peso",          unit:"kg",   color:C.accent, good:"down"},
+  {key:"muscleMass", label:"Masa Muscular", unit:"kg",   color:C.muscle, good:"up"},
+  {key:"fatMass",    label:"Masa Grasa",    unit:"kg",   color:C.fat,    good:"down"},
+  {key:"fatPercent", label:"% Grasa",       unit:"%",    color:C.fat,    good:"down"},
+  {key:"waterLiters",label:"Agua",          unit:"L",    color:C.water,  good:"up"},
+  {key:"visceralFat",label:"Visceral",      unit:"niv",  color:C.bad,    good:"down"},
+  {key:"bmi",        label:"IMC",           unit:"",     color:C.warn,   good:"down"},
+  {key:"bmr",        label:"Metabolismo",   unit:"kcal", color:C.good,   good:"up"},
+  {key:"inBodyScore",label:"Score",         unit:"pts",  color:C.good,   good:"up"},
+];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const fmt = (v,d=1) => (v==null||v===""||isNaN(v))?"—":Number(v).toFixed(d);
+const pctDiff = (c,p,good) => {
+  if(!c||!p||isNaN(c)||isNaN(p)) return null;
+  const d=((c-p)/Math.abs(p))*100;
+  return {delta:d.toFixed(1),positive:good==="up"?d>0:d<0};
+};
+const dlabel = d => new Date(d+"T12:00:00").toLocaleDateString("es-CL",{month:"short",year:"2-digit"});
+const dfull  = d => new Date(d+"T12:00:00").toLocaleDateString("es-CL",{day:"numeric",month:"long",year:"numeric"});
+
+function parseJSON(raw){
+  const s=(raw||"").trim().replace(/```(?:json)?/gi,"").trim();
+  const m=s.match(/\{[\s\S]*\}/);
+  if(!m) throw new Error("No se encontró JSON válido");
+  return JSON.parse(m[0]);
+}
+
+function project(history,key,months=3){
+  const pts=history.filter(h=>h[key]!=null&&h[key]!=="").map((h,i)=>({x:i,y:parseFloat(h[key]),date:h.date}));
+  if(pts.length<2) return [];
+  const n=pts.length,sx=pts.reduce((a,p)=>a+p.x,0),sy=pts.reduce((a,p)=>a+p.y,0);
+  const sxy=pts.reduce((a,p)=>a+p.x*p.y,0),sx2=pts.reduce((a,p)=>a+p.x*p.x,0);
+  const m=(n*sxy-sx*sy)/(n*sx2-sx*sx),b=(sy-m*sx)/n;
+  return Array.from({length:months},(_,i)=>{
+    const x=n+i,dd=new Date(pts[pts.length-1].date+"T12:00:00");
+    dd.setMonth(dd.getMonth()+i+1);
+    return {date:dd.toISOString().slice(0,10),projected:parseFloat((m*x+b).toFixed(1))};
+  });
+}
+
+// ── MINI COMPONENTS ────────────────────────────────────────────────────────────
+function Gauge({fatPct}){
+  const s=Math.min(Math.max(fatPct||20,0),45),fill=s/45;
+  const col=s<18?C.warn:s<25?C.good:s<32?C.warn:C.bad;
+  const lbl=s<18?"Muy bajo":s<25?"Saludable":s<32?"Elevado":"Alto";
+  return React.createElement("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6}},
+    React.createElement("svg",{width:60,height:124,viewBox:"0 0 80 160"},
+      React.createElement("defs",null,
+        React.createElement("clipPath",{id:"bc"},React.createElement("path",{d:"M40 6 C30 6 22 14 22 24 C22 34 28 40 28 40 L20 60 L16 100 L24 100 L26 140 L40 140 L40 6 Z M40 6 C50 6 58 14 58 24 C58 34 52 40 52 40 L60 60 L64 100 L56 100 L54 140 L40 140 L40 6 Z"})),
+        React.createElement("linearGradient",{id:"bg2",x1:"0",y1:"0",x2:"0",y2:"1"},
+          React.createElement("stop",{offset:"0%",stopColor:col,stopOpacity:"0.9"}),
+          React.createElement("stop",{offset:"100%",stopColor:col,stopOpacity:"0.4"})
+        )
+      ),
+      React.createElement("path",{d:"M40 6 C30 6 22 14 22 24 C22 34 28 40 28 40 L20 60 L16 100 L24 100 L26 140 L40 140 L54 140 L56 100 L64 100 L60 60 L52 40 C52 40 58 34 58 24 C58 14 50 6 40 6 Z",fill:"none",stroke:C.border,strokeWidth:"2"}),
+      React.createElement("rect",{x:"0",y:160*(1-fill),width:"80",height:160*fill,fill:"url(#bg2)",clipPath:"url(#bc)"})
+    ),
+    React.createElement("div",{style:{fontFamily:FM,fontSize:18,color:col,fontWeight:700}},fmt(s)+"%"),
+    React.createElement("div",{style:{fontFamily:FB,fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:2}},lbl)
+  );
+}
+
+function Badge({delta,positive}){
+  if(delta==null) return null;
+  const n=Number(delta),arrow=n>0?"▲":n<0?"▼":"●",col=positive?C.good:C.bad;
+  return React.createElement("span",{style:{fontFamily:FM,fontSize:10,color:col,background:col+"22",borderRadius:4,padding:"1px 5px",marginLeft:4}},
+    arrow+" "+Math.abs(n).toFixed(1)+"%"
+  );
+}
+
+function CT({active,payload,label}){
+  if(!active||!payload?.length) return null;
+  return React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px",fontFamily:FM,fontSize:11}},
+    React.createElement("div",{style:{color:C.muted,marginBottom:4}},label),
+    payload.map((p,i)=>React.createElement("div",{key:i,style:{color:p.color||C.text}},p.name+": ",React.createElement("strong",null,fmt(p.value))))
+  );
+}
+
+// ── IMPORT MODAL ──────────────────────────────────────────────────────────────
+function ImportModal({onClose,onImport}){
+  const [json,setJson]=useState(""),
+        [preview,setPreview]=useState(null),
+        [err,setErr]=useState("");
+  const parse=()=>{
+    setErr("");
+    try{
+      const p=parseJSON(json);
+      if(!p.date&&!p.weight) throw new Error("JSON inválido (falta fecha o peso)");
+      setPreview(p);
+    }catch(e){setErr("❌ "+e.message);}
+  };
+  const s=(p=false,col=C.accent)=>({background:p?col:"transparent",color:p?C.bg:col,border:`1px solid ${col}`,borderRadius:10,padding:"11px 20px",fontFamily:FM,fontSize:13,cursor:"pointer",fontWeight:600,WebkitTapHighlightColor:"transparent"});
+  return React.createElement("div",{style:{position:"fixed",inset:0,background:"#000d",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center"}},
+    React.createElement("div",{style:{background:C.card,borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",padding:"20px 20px calc(20px + env(safe-area-inset-bottom,0px))"}},
+      React.createElement("div",{style:{width:40,height:4,background:C.border,borderRadius:2,margin:"0 auto 20px"}}),
+      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
+        React.createElement("div",{style:{fontFamily:FM,fontSize:14,color:C.accent,fontWeight:700}},"IMPORTAR INBODY"),
+        React.createElement("button",{onClick:onClose,style:{background:"none",border:"none",color:C.muted,fontSize:24,cursor:"pointer",padding:4}},"×")
+      ),
+      !preview ? React.createElement(React.Fragment,null,
+        React.createElement("div",{style:{background:C.surface,borderRadius:12,padding:"14px 16px",marginBottom:14}},
+          React.createElement("div",{style:{fontFamily:FM,fontSize:11,color:C.accent,marginBottom:10,letterSpacing:1}},"CÓMO IMPORTAR"),
+          [["1","Sube el PDF en el chat de Claude","usa el botón 📎 en la conversación"],
+           ["2","Pide que lo lea","Claude te dará un JSON con todos los datos"],
+           ["3","Copia el JSON","y pégalo en el cuadro de abajo"],
+           ["4","Confirma","los datos se añaden al dashboard"]
+          ].map(([n,t,d])=>React.createElement("div",{key:n,style:{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}},
+            React.createElement("div",{style:{background:C.accent,color:C.bg,borderRadius:"50%",width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FM,fontSize:11,fontWeight:700,flexShrink:0}},n),
+            React.createElement("div",null,
+              React.createElement("div",{style:{fontFamily:FM,fontSize:12,color:C.text}},t),
+              React.createElement("div",{style:{fontFamily:FB,fontSize:11,color:C.muted}},d)
+            )
+          ))
+        ),
+        React.createElement("textarea",{
+          rows:6,value:json,
+          onChange:e=>{setJson(e.target.value);setErr("");},
+          placeholder:'{"date":"2026-04-23","weight":93.2,"muscleMass":36.8,...}',
+          style:{width:"100%",background:C.surface,border:`1px solid ${json?C.accent:C.border}`,borderRadius:10,color:C.text,fontFamily:FM,fontSize:12,padding:"12px 14px",resize:"none",marginBottom:10}
+        }),
+        err&&React.createElement("div",{style:{fontFamily:FM,fontSize:12,color:C.bad,marginBottom:10,background:C.bad+"15",borderRadius:8,padding:"10px 14px"}},err),
+        React.createElement("div",{style:{display:"flex",gap:10,justifyContent:"flex-end"}},
+          React.createElement("button",{onClick:onClose,style:s()},"Cancelar"),
+          React.createElement("button",{onClick:parse,disabled:!json.trim(),style:s(true)},"Revisar →")
+        )
+      ) : React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:14}},
+        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10}},
+          React.createElement("span",{style:{fontSize:22}},"✅"),
+          React.createElement("div",{style:{fontFamily:FM,fontSize:13,color:C.good,fontWeight:600}},"Datos listos para guardar")
+        ),
+        React.createElement("div",{style:{background:C.surface,borderRadius:10,padding:"14px 16px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 16px"}},
+          [["Fecha",preview.date],["Peso",preview.weight!=null?preview.weight+" kg":null],
+           ["Músculo",preview.muscleMass!=null?preview.muscleMass+" kg":null],
+           ["% Grasa",preview.fatPercent!=null?preview.fatPercent+"%":null],
+           ["Grasa",preview.fatMass!=null?preview.fatMass+" kg":null],
+           ["Agua",preview.waterLiters!=null?preview.waterLiters+" L":null],
+           ["Visceral",preview.visceralFat!=null?"Niv. "+preview.visceralFat:null],
+           ["Metabolismo",preview.bmr!=null?preview.bmr+" kcal":null],
+           ["Score",preview.inBodyScore!=null?preview.inBodyScore+" pts":null],
+          ].filter(([,v])=>v!=null).map(([l,v])=>React.createElement("div",{key:l},
+            React.createElement("div",{style:{fontFamily:FB,fontSize:10,color:C.muted,marginBottom:2}},l),
+            React.createElement("div",{style:{fontFamily:FM,fontSize:13,color:C.text}},v)
+          ))
+        ),
+        preview.notes&&React.createElement("div",{style:{fontFamily:FB,fontSize:12,color:C.muted,fontStyle:"italic",borderLeft:`2px solid ${C.accent}`,paddingLeft:10}},preview.notes),
+        React.createElement("div",{style:{display:"flex",gap:10,justifyContent:"flex-end"}},
+          React.createElement("button",{onClick:()=>setPreview(null),style:s()},"← Editar"),
+          React.createElement("button",{onClick:()=>onImport(preview),style:s(true,C.good)},"✓ Añadir")
+        )
+      )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MAIN APP
+// ══════════════════════════════════════════════════════════════════════════════
+function App(){
+  const [hist,setHist]     = useState([]);
+  const [form,setForm]     = useState(EMPTY);
+  const [view,setView]     = useState("dash");
+  const [chartKey,setCK]   = useState("fatPercent");
+  const [editIdx,setEI]    = useState(null);
+  const [saving,setSaving] = useState(false);
+  const [loaded,setLoaded] = useState(false);
+  const [toast,setToast]   = useState(null);
+  const [showImport,setSI] = useState(false);
+  const toastT = useRef(null);
+
+  useEffect(()=>{
+    try{
+      const raw=localStorage.getItem(KEY);
+      if(raw){const d=JSON.parse(raw);setHist(d.length?d:SEED);}
+      else{setHist(SEED);localStorage.setItem(KEY,JSON.stringify(SEED));}
+    }catch{setHist(SEED);}
+    setLoaded(true);
+  },[]);
+
+  const save=async(next)=>{setSaving(true);try{localStorage.setItem(KEY,JSON.stringify(next));}catch{}setSaving(false);};
+  const toast2=(msg,ok=true)=>{clearTimeout(toastT.current);setToast({msg,ok});toastT.current=setTimeout(()=>setToast(null),3000);};
+
+  const submit=async()=>{
+    if(!form.date){toast2("Agrega una fecha",false);return;}
+    const e={};
+    Object.keys(form).forEach(k=>{
+      if(k==="date"||k==="notes")e[k]=form[k];
+      else e[k]=form[k]===""||form[k]==null?null:parseFloat(form[k]);
+    });
+    const next=editIdx!==null?hist.map((h,i)=>i===editIdx?e:h):[...hist,e].sort((a,b)=>a.date.localeCompare(b.date));
+    setHist(next);await save(next);setForm(EMPTY);setEI(null);setView("dash");
+    toast2(editIdx!==null?"Evaluación actualizada ✓":"Evaluación guardada ✓");
+  };
+
+  const doImport=async(p)=>{
+    setSI(false);
+    const e={date:p.date||new Date().toISOString().slice(0,10),weight:p.weight??null,muscleMass:p.muscleMass??null,fatMass:p.fatMass??null,fatPercent:p.fatPercent??null,waterLiters:p.waterLiters??null,boneMass:p.boneMass??null,bmi:p.bmi??null,visceralFat:p.visceralFat??null,bmr:p.bmr??null,inBodyScore:p.inBodyScore??null,notes:p.notes||"Importado desde PDF"};
+    const next=[...hist,e].sort((a,b)=>a.date.localeCompare(b.date));
+    setHist(next);await save(next);setView("dash");toast2("✓ InBody importado");
+  };
+
+  const del=async(i)=>{const next=hist.filter((_,j)=>j!==i);setHist(next);await save(next);toast2("Eliminado");};
+  const edit=i=>{const h=hist[i];setForm(Object.fromEntries(Object.keys(EMPTY).map(k=>[k,h[k]??''])));setEI(i);setView("add");};
+
+  const latest=hist[hist.length-1]||null;
+  const prev=hist[hist.length-2]||null;
+  const best=hist.reduce((b,h)=>(!b||(h.muscleMass>b.muscleMass))?h:b,null);
+  const cd=hist.map(h=>({label:dlabel(h.date),...Object.fromEntries(FIELDS.map(f=>[f.key,h[f.key]??null]))}));
+  const af=FIELDS.find(f=>f.key===chartKey)||FIELDS[0];
+
+  // ── STYLE HELPERS ──────────────────────────────────────────────────────────
+  const card=(ex={})=>({background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:16,...ex});
+  const btn=(p=false,sm=false,col=C.accent)=>({background:p?col:"transparent",color:p?C.bg:col,border:`1px solid ${col}`,borderRadius:10,padding:sm?"7px 14px":"11px 22px",fontFamily:FM,fontSize:sm?12:13,cursor:"pointer",fontWeight:600,WebkitTapHighlightColor:"transparent"});
+  const inp={background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontFamily:FM,fontSize:14,padding:"10px 14px",width:"100%"};
+  const e=React.createElement;
+
+  if(!loaded) return e("div",{style:{background:C.bg,height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:C.accent,fontFamily:FM,fontSize:16}},"Cargando...");
+
+  // ── DASHBOARD ──────────────────────────────────────────────────────────────
+  const Dash=()=>e("div",{className:"fade-up",style:{display:"flex",flexDirection:"column",gap:14}},
+    // Hero card
+    e("div",{style:{...card(),display:"grid",gridTemplateColumns:"1fr auto",gap:16,alignItems:"center"}},
+      e("div",null,
+        e("div",{style:{fontFamily:FB,fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:6}},
+          latest?dfull(latest.date):"Sin datos"
+        ),
+        e("div",{style:{display:"flex",alignItems:"baseline",gap:8,marginBottom:6,flexWrap:"wrap"}},
+          e("span",{style:{fontFamily:FM,fontSize:42,color:C.accent,fontWeight:700,lineHeight:1}},latest?.inBodyScore??"—"),
+          e("span",{style:{fontFamily:FB,fontSize:12,color:C.muted}},"pts Score"),
+          latest&&prev&&(()=>{const d=pctDiff(latest.inBodyScore,prev.inBodyScore,"up");return d&&e(Badge,{delta:d.delta,positive:d.positive});})()
+        ),
+        e("div",{style:{fontFamily:FB,fontSize:12,color:C.muted,lineHeight:1.7}},
+          "Peso: ",e("span",{style:{color:C.text,fontFamily:FM}},fmt(latest?.weight)," kg"),
+          " · Músculo: ",e("span",{style:{color:C.muscle,fontFamily:FM}},fmt(latest?.muscleMass)," kg"),e("br"),
+          "Grasa: ",e("span",{style:{color:C.fat,fontFamily:FM}},fmt(latest?.fatMass)," kg"),
+          " · Visceral: ",e("span",{style:{color:C.bad,fontFamily:FM}},"niv. ",latest?.visceralFat)
+        )
+      ),
+      e(Gauge,{fatPct:latest?.fatPercent})
+    ),
+    // Best badge
+    best&&best.date!==latest?.date&&e("div",{style:{...card({padding:"12px 16px"}),borderColor:C.muscle,background:C.muscle+"11",display:"flex",alignItems:"center",gap:10}},
+      e("span",{style:{fontSize:20}},"🏆"),
+      e("div",null,
+        e("div",{style:{fontFamily:FM,fontSize:11,color:C.muscle}},"MEJOR MOMENTO — ",dfull(best.date)),
+        e("div",{style:{fontFamily:FB,fontSize:11,color:C.muted}},"Músculo: ",fmt(best.muscleMass)," kg · %Grasa: ",fmt(best.fatPercent),"%")
+      )
+    ),
+    // KPI grid
+    e("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}},
+      FIELDS.map(f=>{
+        const val=latest?.[f.key],d=pctDiff(latest?.[f.key],prev?.[f.key],f.good);
+        return e("div",{key:f.key,onClick:()=>{setCK(f.key);setView("chart");},
+          style:{...card({padding:"10px 12px",cursor:"pointer"}),
+            borderColor:chartKey===f.key?f.color:C.border,
+            boxShadow:chartKey===f.key?`0 0 0 1px ${f.color}44`:"none"}},
+          e("div",{style:{fontFamily:FB,fontSize:9,color:C.muted,letterSpacing:1,textTransform:"uppercase",marginBottom:4}},f.label),
+          e("div",{style:{fontFamily:FM,fontSize:17,color:f.color,fontWeight:700}},fmt(val),e("span",{style:{fontSize:9,color:C.muted,marginLeft:2}},f.unit)),
+          d&&e(Badge,{delta:d.delta,positive:d.positive})
+        );
+      })
+    ),
+    // Mini chart
+    hist.length>1&&e("div",{style:card()},
+      e("div",{style:{fontFamily:FB,fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:12}},"MÚSCULO vs % GRASA"),
+      e(ResponsiveContainer,{width:"100%",height:180},
+        e(AreaChart,{data:cd,margin:{top:4,right:4,left:-28,bottom:0}},
+          e("defs",null,
+            e("linearGradient",{id:"gM2",x1:"0",y1:"0",x2:"0",y2:"1"},e("stop",{offset:"5%",stopColor:C.muscle,stopOpacity:.3}),e("stop",{offset:"95%",stopColor:C.muscle,stopOpacity:0})),
+            e("linearGradient",{id:"gF2",x1:"0",y1:"0",x2:"0",y2:"1"},e("stop",{offset:"5%",stopColor:C.fat,stopOpacity:.3}),e("stop",{offset:"95%",stopColor:C.fat,stopOpacity:0}))
+          ),
+          e(CartesianGrid,{stroke:C.border,strokeDasharray:"3 3"}),
+          e(XAxis,{dataKey:"label",tick:{fill:C.muted,fontSize:10,fontFamily:FM}}),
+          e(YAxis,{tick:{fill:C.muted,fontSize:10,fontFamily:FM}}),
+          e(Tooltip,{content:e(CT)}),
+          e(Area,{type:"monotone",dataKey:"muscleMass",name:"Músculo",stroke:C.muscle,fill:"url(#gM2)",strokeWidth:2,dot:{fill:C.muscle,r:3,strokeWidth:0}}),
+          e(Area,{type:"monotone",dataKey:"fatPercent",name:"% Grasa",stroke:C.fat,fill:"url(#gF2)",strokeWidth:2,dot:{fill:C.fat,r:3,strokeWidth:0}})
+        )
+      )
+    ),
+    // Comparativa
+    latest&&prev&&e("div",{style:card()},
+      e("div",{style:{fontFamily:FB,fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:12}},"COMPARATIVA ",dlabel(prev.date)," → ",dlabel(latest.date)),
+      e("div",{style:{display:"flex",flexDirection:"column",gap:8}},
+        FIELDS.map(f=>{
+          const vC=latest[f.key],vP=prev[f.key];
+          if(!vC||!vP||isNaN(vC)||isNaN(vP)) return null;
+          const d=pctDiff(vC,vP,f.good),bw=Math.min(Math.abs(vC-vP)/Math.abs(vP)*100*8,100);
+          return e("div",{key:f.key,style:{display:"grid",gridTemplateColumns:"80px 1fr auto",alignItems:"center",gap:8}},
+            e("span",{style:{fontFamily:FB,fontSize:11,color:C.muted}},f.label),
+            e("div",{style:{background:C.surface,borderRadius:4,height:4,overflow:"hidden"}},
+              e("div",{style:{height:"100%",width:bw+"%",background:d?.positive?C.good:C.bad,borderRadius:4}})
+            ),
+            d&&e(Badge,{delta:d.delta,positive:d.positive})
+          );
+        })
+      )
+    )
+  );
+
+  // ── CHART VIEW ─────────────────────────────────────────────────────────────
+  const Chart=()=>{
+    const proj=project(hist,chartKey,3);
+    const full=[...cd.map(d=>({...d,projected:null})),...proj.map(d=>({label:dlabel(d.date),[chartKey]:null,projected:d.projected}))];
+    return e("div",{className:"fade-up",style:{display:"flex",flexDirection:"column",gap:14}},
+      e("div",{style:{display:"flex",gap:6,flexWrap:"wrap"}},
+        FIELDS.map(f=>e("button",{key:f.key,onClick:()=>setCK(f.key),
+          style:{...btn(chartKey===f.key,true,f.color),fontSize:11}},f.label))
+      ),
+      e("div",{style:card()},
+        e("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8}},
+          e("div",null,
+            e("div",{style:{fontFamily:FM,fontSize:24,color:af.color,fontWeight:700}},fmt(latest?.[chartKey])," ",e("span",{style:{fontSize:12,color:C.muted}},af.unit)),
+            e("div",{style:{fontFamily:FB,fontSize:11,color:C.muted}},af.label)
+          ),
+          proj.length>0&&e("div",{style:{textAlign:"right"}},
+            e("div",{style:{fontFamily:FB,fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:1}},"Proyección +3m"),
+            e("div",{style:{fontFamily:FM,fontSize:18,color:C.muted}},fmt(proj[proj.length-1]?.projected)," ",af.unit)
+          )
+        ),
+        e(ResponsiveContainer,{width:"100%",height:230},
+          e(LineChart,{data:full,margin:{top:4,right:8,left:-28,bottom:0}},
+            e(CartesianGrid,{stroke:C.border,strokeDasharray:"3 3"}),
+            e(XAxis,{dataKey:"label",tick:{fill:C.muted,fontSize:10,fontFamily:FM}}),
+            e(YAxis,{tick:{fill:C.muted,fontSize:10,fontFamily:FM}}),
+            e(Tooltip,{content:e(CT)}),
+            e(Legend,{wrapperStyle:{fontFamily:FM,fontSize:10}}),
+            e(Line,{type:"monotone",dataKey:chartKey,name:af.label,stroke:af.color,strokeWidth:2.5,dot:{fill:af.color,r:3,strokeWidth:0},connectNulls:false}),
+            e(Line,{type:"monotone",dataKey:"projected",name:"Proyección",stroke:C.muted,strokeDasharray:"5 4",strokeWidth:1.5,dot:{fill:C.muted,r:2,strokeWidth:0},connectNulls:false})
+          )
+        )
+      ),
+      hist.length>1&&e("div",{style:card()},
+        e("div",{style:{fontFamily:FB,fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:12}},"Δ CAMBIO SESIÓN A SESIÓN"),
+        e(ResponsiveContainer,{width:"100%",height:130},
+          e(BarChart,{data:hist.slice(1).map((h,i)=>({label:dlabel(h.date),delta:h[chartKey]!=null&&hist[i][chartKey]!=null?parseFloat((h[chartKey]-hist[i][chartKey]).toFixed(2)):0})),margin:{top:4,right:8,left:-28,bottom:0}},
+            e(CartesianGrid,{stroke:C.border,strokeDasharray:"3 3"}),
+            e(XAxis,{dataKey:"label",tick:{fill:C.muted,fontSize:10,fontFamily:FM}}),
+            e(YAxis,{tick:{fill:C.muted,fontSize:10,fontFamily:FM}}),
+            e(Tooltip,{content:e(CT)}),
+            e(ReferenceLine,{y:0,stroke:C.muted}),
+            e(Bar,{dataKey:"delta",name:"Δ",fill:af.color,radius:[4,4,0,0]})
+          )
+        )
+      )
+    );
+  };
+
+  // ── HISTORY ────────────────────────────────────────────────────────────────
+  const Hist=()=>e("div",{className:"fade-up",style:{display:"flex",flexDirection:"column",gap:10}},
+    [...hist].reverse().map((h,ri)=>{
+      const idx=hist.length-1-ri,p=idx>0?hist[idx-1]:null;
+      return e("div",{key:idx,style:card({padding:"14px 16px"})},
+        e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}},
+          e("div",null,
+            e("div",{style:{fontFamily:FM,fontSize:13,color:C.accent}},dfull(h.date)),
+            h.inBodyScore&&e("div",{style:{fontFamily:FM,fontSize:12,color:C.good}},"Score ",h.inBodyScore," pts")
+          ),
+          e("div",{style:{display:"flex",gap:8}},
+            e("button",{style:btn(false,true),onClick:()=>edit(idx)},"Editar"),
+            e("button",{style:btn(false,true,C.bad),onClick:()=>del(idx)},"×")
+          )
+        ),
+        e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}},
+          FIELDS.map(f=>{
+            if(!h[f.key]&&h[f.key]!==0) return null;
+            const d=p?pctDiff(h[f.key],p[f.key],f.good):null;
+            return e("div",{key:f.key,style:{fontFamily:FM,fontSize:11}},
+              e("span",{style:{color:C.muted}},f.label,": "),
+              e("span",{style:{color:f.color}},fmt(h[f.key]),f.unit),
+              d&&e(Badge,{delta:d.delta,positive:d.positive})
+            );
+          })
+        ),
+        h.notes&&e("div",{style:{marginTop:8,fontFamily:FB,fontSize:11,color:C.muted,borderLeft:`2px solid ${C.accent}`,paddingLeft:8,fontStyle:"italic"}},h.notes)
+      );
+    })
+  );
+
+  // ── ADD ────────────────────────────────────────────────────────────────────
+  const Add=()=>e("div",{className:"fade-up",style:{display:"flex",flexDirection:"column",gap:14,maxWidth:500,margin:"0 auto"}},
+    editIdx===null&&e("div",{style:{...card({padding:"14px 16px"}),borderColor:C.accent+"55",background:C.accent+"08"}},
+      e("div",{style:{fontFamily:FM,fontSize:11,color:C.accent,letterSpacing:1,marginBottom:8}},"📄 IMPORTAR DESDE PDF"),
+      e("div",{style:{fontFamily:FB,fontSize:12,color:C.muted,marginBottom:12,lineHeight:1.6}},"Sube el PDF en el ",e("strong",{style:{color:C.text}},"chat de Claude")," → pide que lo lea → copia el JSON → pégalo aquí."),
+      e("button",{style:btn(true,true),onClick:()=>setSI(true)},"📋 Pegar JSON del InBody")
+    ),
+    e("div",{style:card()},
+      e("div",{style:{fontFamily:FB,fontSize:11,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:14}},editIdx!==null?"EDITAR EVALUACIÓN":"INGRESAR MANUALMENTE"),
+      e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
+        e("div",{style:{gridColumn:"1/-1"}},
+          e("label",{style:{fontFamily:FB,fontSize:11,color:C.muted,display:"block",marginBottom:4}},"Fecha *"),
+          e("input",{type:"date",value:form.date,onChange:ev=>setForm(p=>({...p,date:ev.target.value})),style:inp})
+        ),
+        FIELDS.map(f=>e("div",{key:f.key},
+          e("label",{style:{fontFamily:FB,fontSize:11,color:C.muted,display:"block",marginBottom:4}},f.label,f.unit?" ("+f.unit+")":""),
+          e("input",{type:"number",step:"0.1",placeholder:"—",value:form[f.key],
+            onChange:ev=>setForm(p=>({...p,[f.key]:ev.target.value})),
+            style:{...inp,borderColor:form[f.key]?f.color+"88":C.border}})
+        )),
+        e("div",{style:{gridColumn:"1/-1"}},
+          e("label",{style:{fontFamily:FB,fontSize:11,color:C.muted,display:"block",marginBottom:4}},"Notas"),
+          e("textarea",{rows:3,value:form.notes,onChange:ev=>setForm(p=>({...p,notes:ev.target.value})),
+            style:{...inp,resize:"vertical",fontFamily:FB}})
+        )
+      ),
+      e("div",{style:{display:"flex",gap:10,marginTop:14,justifyContent:"flex-end"}},
+        e("button",{style:btn(),onClick:()=>{setForm(EMPTY);setEI(null);setView("dash");}},"Cancelar"),
+        e("button",{style:btn(true),onClick:submit},saving?"Guardando…":editIdx!==null?"Actualizar":"Guardar")
+      )
+    )
+  );
+
+  // ── BOTTOM NAV ──────────────────────────────────────────────────────────────
+  const NAV=[
+    {id:"dash",   icon:"📊", label:"Inicio"},
+    {id:"chart",  icon:"📈", label:"Gráficos"},
+    {id:"hist",   icon:"📋", label:"Historial"},
+    {id:"add",    icon:"➕", label:"Agregar"},
+  ];
+
+  return e("div",{style:{background:C.bg,minHeight:"100vh",color:C.text,fontFamily:FB}},
+    showImport&&e(ImportModal,{onClose:()=>setSI(false),onImport:doImport}),
+
+    // Top bar
+    e("div",{className:"nav-bar",style:{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"12px 16px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:100}},
+      e("div",{style:{fontFamily:FM,fontSize:14,color:C.accent,fontWeight:700,letterSpacing:1}},"INBODY ",e("span",{style:{color:C.muted}},"· JOSE")),
+      e("div",{style:{fontFamily:FM,fontSize:10,color:C.muted}},saving?"Guardando…":hist.length+" evaluaciones")
+    ),
+
+    // Page content
+    e("div",{className:"page",style:{padding:"16px 14px",maxWidth:600,margin:"0 auto"}},
+      view==="dash"  && e(Dash),
+      view==="chart" && e(Chart),
+      view==="hist"  && e(Hist),
+      view==="add"   && e(Add)
+    ),
+
+    // Bottom nav
+    e("div",{className:"bottom-nav",style:{position:"fixed",bottom:0,left:0,right:0,background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100}},
+      NAV.map(n=>e("button",{key:n.id,onClick:()=>{setView(n.id);if(n.id==="add"){setForm(EMPTY);setEI(null);}},
+        style:{flex:1,background:"none",border:"none",cursor:"pointer",padding:"10px 4px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,
+          color:view===n.id?C.accent:C.muted,borderTop:view===n.id?`2px solid ${C.accent}`:"2px solid transparent"}},
+        e("span",{style:{fontSize:20}},n.icon),
+        e("span",{style:{fontFamily:FM,fontSize:9,letterSpacing:.5}},n.label)
+      ))
+    ),
+
+    // Toast
+    toast&&e("div",{style:{position:"fixed",bottom:74,left:"50%",transform:"translateX(-50%)",zIndex:300,background:toast.ok?C.good:C.bad,color:"#fff",padding:"10px 20px",borderRadius:20,fontFamily:FM,fontSize:13,boxShadow:"0 4px 20px #0009",whiteSpace:"nowrap"}},toast.msg)
+  );
+}
+
+ReactDOM.render(React.createElement(App), document.getElementById("root"));
+
+// ── SERVICE WORKER ────────────────────────────────────────────────────────────
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("/sw.js").then(()=>console.log("SW registered")).catch(e=>console.warn("SW failed:",e));
+  });
+}
+</script>
+</body>
+</html>
