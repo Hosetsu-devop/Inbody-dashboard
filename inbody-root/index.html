@@ -11,51 +11,103 @@
   <link rel="apple-touch-icon" href="icons/icon-192.svg"/>
   <title>InBody · Jose</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
-  <!-- Recharts + React via CDN -->
-  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-    html,body,#root{height:100%;background:#0B0F1A}
+    html,body{height:100%;background:#0B0F1A;color:#E2E8F0;font-family:'Inter',sans-serif}
     body{overscroll-behavior:none;-webkit-overflow-scrolling:touch}
     input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
-    input:focus,textarea:focus{outline:none}
-    button:active{opacity:.75}
+    input:focus,textarea:focus{outline:2px solid #00D4FF;outline-offset:-1px}
+    button{cursor:pointer;font-family:'Inter',sans-serif}
+    button:active{opacity:.75;transform:scale(.97)}
     ::-webkit-scrollbar{width:4px;height:4px}
     ::-webkit-scrollbar-track{background:#0B0F1A}
     ::-webkit-scrollbar-thumb{background:#1F2D45;border-radius:2px}
-    input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.4)}
-    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-    .fade-up{animation:fadeUp .25s ease}
-    /* iOS safe areas */
-    .nav-bar{padding-top:env(safe-area-inset-top,0px)}
-    .bottom-nav{padding-bottom:env(safe-area-inset-bottom,0px)}
-    .page{padding-bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+    input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.5)}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+    .fade{animation:fadeUp .22s ease}
+    @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+    /* Layout */
+    #app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+    #topbar{background:#131929;border-bottom:1px solid #1F2D45;padding:12px 16px;padding-top:calc(12px + env(safe-area-inset-top,0px));display:flex;justify-content:space-between;align-items:center;flex-shrink:0;position:sticky;top:0;z-index:50}
+    #content{flex:1;overflow-y:auto;padding:16px 14px;padding-bottom:calc(80px + env(safe-area-inset-bottom,0px));max-width:600px;margin:0 auto;width:100%}
+    #bottomnav{position:fixed;bottom:0;left:0;right:0;background:#131929;border-top:1px solid #1F2D45;display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom,0px)}
+    .navbtn{flex:1;background:none;border:none;border-top:2px solid transparent;padding:10px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;color:#64748B;transition:color .15s}
+    .navbtn.active{color:#00D4FF;border-top-color:#00D4FF}
+    .navbtn span.icon{font-size:20px}
+    .navbtn span.lbl{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.5px}
+    /* Cards */
+    .card{background:#1A2236;border:1px solid #1F2D45;border-radius:16px;padding:16px}
+    .card+.card,.card+.section,.section+.card{margin-top:12px}
+    .section{display:flex;flex-direction:column;gap:12px}
+    /* KPI grid */
+    .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .kpi{background:#1A2236;border:1px solid #1F2D45;border-radius:14px;padding:10px 12px;cursor:pointer;transition:border-color .2s}
+    .kpi-label{font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px}
+    .kpi-val{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700}
+    .kpi-unit{font-size:9px;color:#64748B;margin-left:2px}
+    /* Badges */
+    .badge{font-family:'JetBrains Mono',monospace;font-size:10px;border-radius:4px;padding:1px 5px;margin-left:4px;display:inline-block}
+    .badge.good{color:#22C55E;background:#22C55E22}
+    .badge.bad{color:#EF4444;background:#EF444422}
+    /* Form */
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .form-full{grid-column:1/-1}
+    label{display:block;font-size:11px;color:#64748B;margin-bottom:4px}
+    input,textarea{width:100%;background:#131929;border:1px solid #1F2D45;border-radius:10px;color:#E2E8F0;font-family:'JetBrains Mono',monospace;font-size:14px;padding:10px 14px}
+    textarea{resize:vertical;font-family:'Inter',sans-serif}
+    /* Buttons */
+    .btn{border-radius:10px;padding:11px 22px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;border:1px solid #00D4FF;color:#00D4FF;background:transparent;transition:opacity .15s}
+    .btn.primary{background:#00D4FF;color:#0B0F1A}
+    .btn.sm{padding:7px 14px;font-size:12px}
+    .btn.danger{border-color:#EF4444;color:#EF4444}
+    .btn.success{border-color:#22C55E;color:#22C55E}
+    .btn.success.primary{background:#22C55E;color:#0B0F1A}
+    /* Toast */
+    #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#22C55E;color:#fff;padding:10px 22px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-size:13px;box-shadow:0 4px 20px #0009;white-space:nowrap;z-index:200;opacity:0;transition:all .3s;pointer-events:none}
+    #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    #toast.err{background:#EF4444}
+    /* Modal */
+    .modal-bg{position:fixed;inset:0;background:#000d;z-index:100;display:flex;align-items:flex-end;justify-content:center}
+    .modal{background:#1A2236;border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px))}
+    .modal-handle{width:40px;height:4px;background:#1F2D45;border-radius:2px;margin:0 auto 20px}
+    /* Compare bars */
+    .cmp-row{display:grid;grid-template-columns:80px 1fr auto;align-items:center;gap:8px;margin-bottom:8px}
+    .bar-track{background:#131929;border-radius:4px;height:4px;overflow:hidden}
+    .bar-fill{height:100%;border-radius:4px;transition:width .4s}
+    /* Chart canvas wrapper */
+    .chart-wrap{position:relative;height:200px;margin-top:8px}
   </style>
 </head>
 <body>
-<div id="root"></div>
+<div id="app">
+  <div id="topbar">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#00D4FF;font-weight:700;letter-spacing:1px">
+      INBODY <span style="color:#64748B">· JOSE</span>
+    </div>
+    <div id="eval-count" style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748B"></div>
+  </div>
+  <div id="content"></div>
+  <nav id="bottomnav">
+    <button class="navbtn active" data-view="dash" onclick="nav('dash')">
+      <span class="icon">📊</span><span class="lbl">Inicio</span>
+    </button>
+    <button class="navbtn" data-view="chart" onclick="nav('chart')">
+      <span class="icon">📈</span><span class="lbl">Gráficos</span>
+    </button>
+    <button class="navbtn" data-view="hist" onclick="nav('hist')">
+      <span class="icon">📋</span><span class="lbl">Historial</span>
+    </button>
+    <button class="navbtn" data-view="add" onclick="nav('add')">
+      <span class="icon">➕</span><span class="lbl">Agregar</span>
+    </button>
+  </nav>
+</div>
+<div id="toast"></div>
+
 <script>
-const { useState, useEffect, useRef, useCallback } = React;
-const {
-  LineChart, Line, AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend
-} = Recharts;
-
-// ── PALETTE ───────────────────────────────────────────────────────────────────
-const C = {
-  bg:"#0B0F1A",surface:"#131929",card:"#1A2236",border:"#1F2D45",
-  accent:"#00D4FF",good:"#22C55E",bad:"#EF4444",warn:"#F59E0B",
-  text:"#E2E8F0",muted:"#64748B",muscle:"#818CF8",fat:"#F97316",
-  water:"#38BDF8",bone:"#A3E635",
-};
-const FM = "'JetBrains Mono','Fira Mono',monospace";
-const FB = "'Inter',sans-serif";
+// ── DATA ──────────────────────────────────────────────────────────────────────
 const KEY = "inbody-pwa-v1";
-
-// ── SEED DATA ─────────────────────────────────────────────────────────────────
 const SEED = [
   {date:"2025-03-10",weight:91.9,muscleMass:36.7,fatMass:26.9,fatPercent:29.5,waterLiters:47.0,boneMass:4.56,bmi:29.2,visceralFat:11,bmr:1762,inBodyScore:null,notes:"Primera evaluación registrada"},
   {date:"2025-04-30",weight:91.4,muscleMass:36.8,fatMass:26.4,fatPercent:29.5,waterLiters:47.2,boneMass:4.56,bmi:29.0,visceralFat:10,bmr:1769,inBodyScore:null,notes:""},
@@ -68,467 +120,486 @@ const SEED = [
   {date:"2026-04-23",weight:93.2,muscleMass:36.8,fatMass:28.5,fatPercent:30.5,waterLiters:47.3,boneMass:4.58,bmi:29.6,visceralFat:11,bmr:1768,inBodyScore:69,notes:"Score 69 pts · músculo recuperado · tendencia positiva"},
 ];
 
-const EMPTY = {date:new Date().toISOString().slice(0,10),weight:"",muscleMass:"",fatMass:"",fatPercent:"",waterLiters:"",boneMass:"",bmi:"",visceralFat:"",bmr:"",inBodyScore:"",notes:""};
-
 const FIELDS = [
-  {key:"weight",     label:"Peso",          unit:"kg",   color:C.accent, good:"down"},
-  {key:"muscleMass", label:"Masa Muscular", unit:"kg",   color:C.muscle, good:"up"},
-  {key:"fatMass",    label:"Masa Grasa",    unit:"kg",   color:C.fat,    good:"down"},
-  {key:"fatPercent", label:"% Grasa",       unit:"%",    color:C.fat,    good:"down"},
-  {key:"waterLiters",label:"Agua",          unit:"L",    color:C.water,  good:"up"},
-  {key:"visceralFat",label:"Visceral",      unit:"niv",  color:C.bad,    good:"down"},
-  {key:"bmi",        label:"IMC",           unit:"",     color:C.warn,   good:"down"},
-  {key:"bmr",        label:"Metabolismo",   unit:"kcal", color:C.good,   good:"up"},
-  {key:"inBodyScore",label:"Score",         unit:"pts",  color:C.good,   good:"up"},
+  {key:"weight",     label:"Peso",     unit:"kg",   color:"#00D4FF", good:"down"},
+  {key:"muscleMass", label:"Músculo",  unit:"kg",   color:"#818CF8", good:"up"},
+  {key:"fatMass",    label:"Grasa",    unit:"kg",   color:"#F97316", good:"down"},
+  {key:"fatPercent", label:"% Grasa",  unit:"%",    color:"#F97316", good:"down"},
+  {key:"waterLiters",label:"Agua",     unit:"L",    color:"#38BDF8", good:"up"},
+  {key:"visceralFat",label:"Visceral", unit:"niv",  color:"#EF4444", good:"down"},
+  {key:"bmi",        label:"IMC",      unit:"",     color:"#F59E0B", good:"down"},
+  {key:"bmr",        label:"Metabol.", unit:"kcal", color:"#22C55E", good:"up"},
+  {key:"inBodyScore",label:"Score",    unit:"pts",  color:"#22C55E", good:"up"},
 ];
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-const fmt = (v,d=1) => (v==null||v===""||isNaN(v))?"—":Number(v).toFixed(d);
-const pctDiff = (c,p,good) => {
-  if(!c||!p||isNaN(c)||isNaN(p)) return null;
-  const d=((c-p)/Math.abs(p))*100;
-  return {delta:d.toFixed(1),positive:good==="up"?d>0:d<0};
-};
+// ── STATE ──────────────────────────────────────────────────────────────────────
+let hist = [], view = "dash", chartKey = "fatPercent", editIdx = null;
+let activeChart = null;
+
+function load() {
+  try {
+    const r = localStorage.getItem(KEY);
+    hist = r ? JSON.parse(r) : SEED;
+    if (!hist.length) hist = SEED;
+  } catch { hist = SEED; }
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(hist)); } catch {}
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────────
+const fmt = (v, d=1) => (v==null||v===""||isNaN(v)) ? "—" : Number(v).toFixed(d);
+function pctDiff(c, p, good) {
+  if (!c||!p||isNaN(c)||isNaN(p)) return null;
+  const d = ((c-p)/Math.abs(p))*100;
+  return {delta:d.toFixed(1), positive: good==="up" ? d>0 : d<0};
+}
 const dlabel = d => new Date(d+"T12:00:00").toLocaleDateString("es-CL",{month:"short",year:"2-digit"});
 const dfull  = d => new Date(d+"T12:00:00").toLocaleDateString("es-CL",{day:"numeric",month:"long",year:"numeric"});
 
-function parseJSON(raw){
-  const s=(raw||"").trim().replace(/```(?:json)?/gi,"").trim();
-  const m=s.match(/\{[\s\S]*\}/);
-  if(!m) throw new Error("No se encontró JSON válido");
-  return JSON.parse(m[0]);
+function badge(delta, positive) {
+  if (delta==null) return "";
+  const n=Number(delta), arrow=n>0?"▲":n<0?"▼":"●";
+  return `<span class="badge ${positive?"good":"bad"}">${arrow} ${Math.abs(n).toFixed(1)}%</span>`;
 }
 
-function project(history,key,months=3){
-  const pts=history.filter(h=>h[key]!=null&&h[key]!=="").map((h,i)=>({x:i,y:parseFloat(h[key]),date:h.date}));
-  if(pts.length<2) return [];
-  const n=pts.length,sx=pts.reduce((a,p)=>a+p.x,0),sy=pts.reduce((a,p)=>a+p.y,0);
-  const sxy=pts.reduce((a,p)=>a+p.x*p.y,0),sx2=pts.reduce((a,p)=>a+p.x*p.x,0);
-  const m=(n*sxy-sx*sy)/(n*sx2-sx*sx),b=(sy-m*sx)/n;
+function project(key, months=3) {
+  const pts = hist.filter(h=>h[key]!=null).map((h,i)=>({x:i,y:parseFloat(h[key])}));
+  if (pts.length<2) return [];
+  const n=pts.length, sx=pts.reduce((a,p)=>a+p.x,0), sy=pts.reduce((a,p)=>a+p.y,0);
+  const sxy=pts.reduce((a,p)=>a+p.x*p.y,0), sx2=pts.reduce((a,p)=>a+p.x*p.x,0);
+  const m=(n*sxy-sx*sy)/(n*sx2-sx*sx), b=(sy-m*sx)/n;
+  const last = hist[hist.length-1];
   return Array.from({length:months},(_,i)=>{
-    const x=n+i,dd=new Date(pts[pts.length-1].date+"T12:00:00");
-    dd.setMonth(dd.getMonth()+i+1);
-    return {date:dd.toISOString().slice(0,10),projected:parseFloat((m*x+b).toFixed(1))};
+    const dd=new Date(last.date+"T12:00:00"); dd.setMonth(dd.getMonth()+i+1);
+    return {date:dd.toISOString().slice(0,10), val:parseFloat((m*(pts.length+i)+b).toFixed(1))};
   });
 }
 
-// ── MINI COMPONENTS ────────────────────────────────────────────────────────────
-function Gauge({fatPct}){
-  const s=Math.min(Math.max(fatPct||20,0),45),fill=s/45;
-  const col=s<18?C.warn:s<25?C.good:s<32?C.warn:C.bad;
+// ── TOAST ──────────────────────────────────────────────────────────────────────
+let toastT;
+function showToast(msg, ok=true) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "show" + (ok?"":" err");
+  clearTimeout(toastT);
+  toastT = setTimeout(()=>{ t.className=""; }, 3000);
+}
+
+// ── NAV ────────────────────────────────────────────────────────────────────────
+function nav(v) {
+  view = v;
+  if (v==="add" && editIdx===null) currentForm = {...EMPTY_FORM};
+  document.querySelectorAll(".navbtn").forEach(b => b.classList.toggle("active", b.dataset.view===v));
+  if (activeChart) { activeChart.destroy(); activeChart=null; }
+  render();
+}
+
+// ── GAUGE SVG ─────────────────────────────────────────────────────────────────
+function gaugeHTML(fatPct) {
+  const s=Math.min(Math.max(fatPct||20,0),45), fill=s/45;
+  const col=s<18?"#F59E0B":s<25?"#22C55E":s<32?"#F59E0B":"#EF4444";
   const lbl=s<18?"Muy bajo":s<25?"Saludable":s<32?"Elevado":"Alto";
-  return React.createElement("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",gap:6}},
-    React.createElement("svg",{width:60,height:124,viewBox:"0 0 80 160"},
-      React.createElement("defs",null,
-        React.createElement("clipPath",{id:"bc"},React.createElement("path",{d:"M40 6 C30 6 22 14 22 24 C22 34 28 40 28 40 L20 60 L16 100 L24 100 L26 140 L40 140 L40 6 Z M40 6 C50 6 58 14 58 24 C58 34 52 40 52 40 L60 60 L64 100 L56 100 L54 140 L40 140 L40 6 Z"})),
-        React.createElement("linearGradient",{id:"bg2",x1:"0",y1:"0",x2:"0",y2:"1"},
-          React.createElement("stop",{offset:"0%",stopColor:col,stopOpacity:"0.9"}),
-          React.createElement("stop",{offset:"100%",stopColor:col,stopOpacity:"0.4"})
-        )
-      ),
-      React.createElement("path",{d:"M40 6 C30 6 22 14 22 24 C22 34 28 40 28 40 L20 60 L16 100 L24 100 L26 140 L40 140 L54 140 L56 100 L64 100 L60 60 L52 40 C52 40 58 34 58 24 C58 14 50 6 40 6 Z",fill:"none",stroke:C.border,strokeWidth:"2"}),
-      React.createElement("rect",{x:"0",y:160*(1-fill),width:"80",height:160*fill,fill:"url(#bg2)",clipPath:"url(#bc)"})
-    ),
-    React.createElement("div",{style:{fontFamily:FM,fontSize:18,color:col,fontWeight:700}},fmt(s)+"%"),
-    React.createElement("div",{style:{fontFamily:FB,fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:2}},lbl)
-  );
+  const y=160*(1-fill);
+  return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+    <svg width="60" height="124" viewBox="0 0 80 160">
+      <defs>
+        <clipPath id="bc"><path d="M40 6 C30 6 22 14 22 24 C22 34 28 40 28 40 L20 60 L16 100 L24 100 L26 140 L40 140 L40 6 Z M40 6 C50 6 58 14 58 24 C58 34 52 40 52 40 L60 60 L64 100 L56 100 L54 140 L40 140 L40 6 Z"/></clipPath>
+        <linearGradient id="fg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${col}" stop-opacity=".9"/>
+          <stop offset="100%" stop-color="${col}" stop-opacity=".4"/>
+        </linearGradient>
+      </defs>
+      <path d="M40 6 C30 6 22 14 22 24 C22 34 28 40 28 40 L20 60 L16 100 L24 100 L26 140 L40 140 L54 140 L56 100 L64 100 L60 60 L52 40 C52 40 58 34 58 24 C58 14 50 6 40 6 Z" fill="none" stroke="#1F2D45" stroke-width="2"/>
+      <rect x="0" y="${y}" width="80" height="${160*fill}" fill="url(#fg)" clip-path="url(#bc)"/>
+    </svg>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:17px;color:${col};font-weight:700">${fmt(s)}%</div>
+    <div style="font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:2px">${lbl}</div>
+  </div>`;
 }
 
-function Badge({delta,positive}){
-  if(delta==null) return null;
-  const n=Number(delta),arrow=n>0?"▲":n<0?"▼":"●",col=positive?C.good:C.bad;
-  return React.createElement("span",{style:{fontFamily:FM,fontSize:10,color:col,background:col+"22",borderRadius:4,padding:"1px 5px",marginLeft:4}},
-    arrow+" "+Math.abs(n).toFixed(1)+"%"
-  );
-}
+// ── VIEWS ──────────────────────────────────────────────────────────────────────
+function renderDash() {
+  const l=hist[hist.length-1], p=hist[hist.length-2];
+  const best=hist.reduce((b,h)=>(!b||h.muscleMass>b.muscleMass)?h:b,null);
+  if (!l) return `<div class="card" style="text-align:center;padding:40px">
+    <div style="font-size:40px;margin-bottom:12px">📊</div>
+    <div style="color:#64748B;margin-bottom:16px">No hay evaluaciones aún</div>
+    <button class="btn primary" onclick="nav('add')">+ Agregar primera evaluación</button>
+  </div>`;
 
-function CT({active,payload,label}){
-  if(!active||!payload?.length) return null;
-  return React.createElement("div",{style:{background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:"8px 12px",fontFamily:FM,fontSize:11}},
-    React.createElement("div",{style:{color:C.muted,marginBottom:4}},label),
-    payload.map((p,i)=>React.createElement("div",{key:i,style:{color:p.color||C.text}},p.name+": ",React.createElement("strong",null,fmt(p.value))))
-  );
-}
+  const sd = pctDiff(l.inBodyScore,p?.inBodyScore,"up");
+  let html = `<div class="section fade">
+  <div class="card" style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center">
+    <div>
+      <div style="font-size:10px;color:#64748B;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">${dfull(l.date)}</div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:40px;color:#00D4FF;font-weight:700;line-height:1">${l.inBodyScore??"—"}</span>
+        <span style="font-size:12px;color:#64748B">pts Score</span>
+        ${sd?badge(sd.delta,sd.positive):""}
+      </div>
+      <div style="font-size:12px;color:#64748B;line-height:1.8">
+        Peso: <span style="color:#E2E8F0;font-family:'JetBrains Mono',monospace">${fmt(l.weight)} kg</span> ·
+        Músculo: <span style="color:#818CF8;font-family:'JetBrains Mono',monospace">${fmt(l.muscleMass)} kg</span><br>
+        Grasa: <span style="color:#F97316;font-family:'JetBrains Mono',monospace">${fmt(l.fatMass)} kg</span> ·
+        Visceral: <span style="color:#EF4444;font-family:'JetBrains Mono',monospace">niv. ${l.visceralFat}</span>
+      </div>
+      ${l.notes?`<div style="margin-top:10px;font-size:11px;color:#64748B;border-left:2px solid #00D4FF;padding-left:8px;font-style:italic">${l.notes}</div>`:""}
+    </div>
+    ${gaugeHTML(l.fatPercent)}
+  </div>`;
 
-// ── IMPORT MODAL ──────────────────────────────────────────────────────────────
-function ImportModal({onClose,onImport}){
-  const [json,setJson]=useState(""),
-        [preview,setPreview]=useState(null),
-        [err,setErr]=useState("");
-  const parse=()=>{
-    setErr("");
-    try{
-      const p=parseJSON(json);
-      if(!p.date&&!p.weight) throw new Error("JSON inválido (falta fecha o peso)");
-      setPreview(p);
-    }catch(e){setErr("❌ "+e.message);}
-  };
-  const s=(p=false,col=C.accent)=>({background:p?col:"transparent",color:p?C.bg:col,border:`1px solid ${col}`,borderRadius:10,padding:"11px 20px",fontFamily:FM,fontSize:13,cursor:"pointer",fontWeight:600,WebkitTapHighlightColor:"transparent"});
-  return React.createElement("div",{style:{position:"fixed",inset:0,background:"#000d",zIndex:500,display:"flex",alignItems:"flex-end",justifyContent:"center"}},
-    React.createElement("div",{style:{background:C.card,borderRadius:"20px 20px 0 0",width:"100%",maxWidth:560,maxHeight:"90vh",overflowY:"auto",padding:"20px 20px calc(20px + env(safe-area-inset-bottom,0px))"}},
-      React.createElement("div",{style:{width:40,height:4,background:C.border,borderRadius:2,margin:"0 auto 20px"}}),
-      React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
-        React.createElement("div",{style:{fontFamily:FM,fontSize:14,color:C.accent,fontWeight:700}},"IMPORTAR INBODY"),
-        React.createElement("button",{onClick:onClose,style:{background:"none",border:"none",color:C.muted,fontSize:24,cursor:"pointer",padding:4}},"×")
-      ),
-      !preview ? React.createElement(React.Fragment,null,
-        React.createElement("div",{style:{background:C.surface,borderRadius:12,padding:"14px 16px",marginBottom:14}},
-          React.createElement("div",{style:{fontFamily:FM,fontSize:11,color:C.accent,marginBottom:10,letterSpacing:1}},"CÓMO IMPORTAR"),
-          [["1","Sube el PDF en el chat de Claude","usa el botón 📎 en la conversación"],
-           ["2","Pide que lo lea","Claude te dará un JSON con todos los datos"],
-           ["3","Copia el JSON","y pégalo en el cuadro de abajo"],
-           ["4","Confirma","los datos se añaden al dashboard"]
-          ].map(([n,t,d])=>React.createElement("div",{key:n,style:{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}},
-            React.createElement("div",{style:{background:C.accent,color:C.bg,borderRadius:"50%",width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FM,fontSize:11,fontWeight:700,flexShrink:0}},n),
-            React.createElement("div",null,
-              React.createElement("div",{style:{fontFamily:FM,fontSize:12,color:C.text}},t),
-              React.createElement("div",{style:{fontFamily:FB,fontSize:11,color:C.muted}},d)
-            )
-          ))
-        ),
-        React.createElement("textarea",{
-          rows:6,value:json,
-          onChange:e=>{setJson(e.target.value);setErr("");},
-          placeholder:'{"date":"2026-04-23","weight":93.2,"muscleMass":36.8,...}',
-          style:{width:"100%",background:C.surface,border:`1px solid ${json?C.accent:C.border}`,borderRadius:10,color:C.text,fontFamily:FM,fontSize:12,padding:"12px 14px",resize:"none",marginBottom:10}
-        }),
-        err&&React.createElement("div",{style:{fontFamily:FM,fontSize:12,color:C.bad,marginBottom:10,background:C.bad+"15",borderRadius:8,padding:"10px 14px"}},err),
-        React.createElement("div",{style:{display:"flex",gap:10,justifyContent:"flex-end"}},
-          React.createElement("button",{onClick:onClose,style:s()},"Cancelar"),
-          React.createElement("button",{onClick:parse,disabled:!json.trim(),style:s(true)},"Revisar →")
-        )
-      ) : React.createElement("div",{style:{display:"flex",flexDirection:"column",gap:14}},
-        React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10}},
-          React.createElement("span",{style:{fontSize:22}},"✅"),
-          React.createElement("div",{style:{fontFamily:FM,fontSize:13,color:C.good,fontWeight:600}},"Datos listos para guardar")
-        ),
-        React.createElement("div",{style:{background:C.surface,borderRadius:10,padding:"14px 16px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px 16px"}},
-          [["Fecha",preview.date],["Peso",preview.weight!=null?preview.weight+" kg":null],
-           ["Músculo",preview.muscleMass!=null?preview.muscleMass+" kg":null],
-           ["% Grasa",preview.fatPercent!=null?preview.fatPercent+"%":null],
-           ["Grasa",preview.fatMass!=null?preview.fatMass+" kg":null],
-           ["Agua",preview.waterLiters!=null?preview.waterLiters+" L":null],
-           ["Visceral",preview.visceralFat!=null?"Niv. "+preview.visceralFat:null],
-           ["Metabolismo",preview.bmr!=null?preview.bmr+" kcal":null],
-           ["Score",preview.inBodyScore!=null?preview.inBodyScore+" pts":null],
-          ].filter(([,v])=>v!=null).map(([l,v])=>React.createElement("div",{key:l},
-            React.createElement("div",{style:{fontFamily:FB,fontSize:10,color:C.muted,marginBottom:2}},l),
-            React.createElement("div",{style:{fontFamily:FM,fontSize:13,color:C.text}},v)
-          ))
-        ),
-        preview.notes&&React.createElement("div",{style:{fontFamily:FB,fontSize:12,color:C.muted,fontStyle:"italic",borderLeft:`2px solid ${C.accent}`,paddingLeft:10}},preview.notes),
-        React.createElement("div",{style:{display:"flex",gap:10,justifyContent:"flex-end"}},
-          React.createElement("button",{onClick:()=>setPreview(null),style:s()},"← Editar"),
-          React.createElement("button",{onClick:()=>onImport(preview),style:s(true,C.good)},"✓ Añadir")
-        )
-      )
-    )
-  );
-}
+  if (best && best.date !== l.date) {
+    html += `<div class="card" style="border-color:#818CF8;background:#818CF811;display:flex;align-items:center;gap:10px">
+      <span style="font-size:20px">🏆</span>
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#818CF8">MEJOR MOMENTO — ${dfull(best.date)}</div>
+        <div style="font-size:11px;color:#64748B">Músculo: ${fmt(best.muscleMass)} kg · %Grasa: ${fmt(best.fatPercent)}%</div>
+      </div>
+    </div>`;
+  }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// MAIN APP
-// ══════════════════════════════════════════════════════════════════════════════
-function App(){
-  const [hist,setHist]     = useState([]);
-  const [form,setForm]     = useState(EMPTY);
-  const [view,setView]     = useState("dash");
-  const [chartKey,setCK]   = useState("fatPercent");
-  const [editIdx,setEI]    = useState(null);
-  const [saving,setSaving] = useState(false);
-  const [loaded,setLoaded] = useState(false);
-  const [toast,setToast]   = useState(null);
-  const [showImport,setSI] = useState(false);
-  const toastT = useRef(null);
+  html += `<div class="kpi-grid">`;
+  FIELDS.forEach(f => {
+    const val=l[f.key], d=pctDiff(l[f.key],p?.[f.key],f.good);
+    html += `<div class="kpi" style="${chartKey===f.key?`border-color:${f.color};box-shadow:0 0 0 1px ${f.color}44`:""}" onclick="setCK('${f.key}')">
+      <div class="kpi-label">${f.label}</div>
+      <div class="kpi-val" style="color:${f.color}">${fmt(val)}<span class="kpi-unit">${f.unit}</span></div>
+      ${d?badge(d.delta,d.positive):""}
+    </div>`;
+  });
+  html += `</div>`;
 
-  useEffect(()=>{
-    try{
-      const raw=localStorage.getItem(KEY);
-      if(raw){const d=JSON.parse(raw);setHist(d.length?d:SEED);}
-      else{setHist(SEED);localStorage.setItem(KEY,JSON.stringify(SEED));}
-    }catch{setHist(SEED);}
-    setLoaded(true);
-  },[]);
+  // Mini chart
+  if (hist.length > 1) {
+    html += `<div class="card">
+      <div style="font-size:10px;color:#64748B;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">MÚSCULO vs % GRASA</div>
+      <div class="chart-wrap"><canvas id="miniChart"></canvas></div>
+    </div>`;
+  }
 
-  const save=async(next)=>{setSaving(true);try{localStorage.setItem(KEY,JSON.stringify(next));}catch{}setSaving(false);};
-  const toast2=(msg,ok=true)=>{clearTimeout(toastT.current);setToast({msg,ok});toastT.current=setTimeout(()=>setToast(null),3000);};
-
-  const submit=async()=>{
-    if(!form.date){toast2("Agrega una fecha",false);return;}
-    const e={};
-    Object.keys(form).forEach(k=>{
-      if(k==="date"||k==="notes")e[k]=form[k];
-      else e[k]=form[k]===""||form[k]==null?null:parseFloat(form[k]);
+  // Comparativa
+  if (l && p) {
+    html += `<div class="card">
+      <div style="font-size:10px;color:#64748B;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px">COMPARATIVA ${dlabel(p.date)} → ${dlabel(l.date)}</div>`;
+    FIELDS.forEach(f => {
+      const vC=l[f.key],vP=p[f.key];
+      if(!vC||!vP||isNaN(vC)||isNaN(vP)) return;
+      const d=pctDiff(vC,vP,f.good),bw=Math.min(Math.abs(vC-vP)/Math.abs(vP)*100*8,100);
+      html += `<div class="cmp-row">
+        <span style="font-size:11px;color:#64748B">${f.label}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${bw}%;background:${d?.positive?"#22C55E":"#EF4444"}"></div></div>
+        ${d?badge(d.delta,d.positive):""}
+      </div>`;
     });
-    const next=editIdx!==null?hist.map((h,i)=>i===editIdx?e:h):[...hist,e].sort((a,b)=>a.date.localeCompare(b.date));
-    setHist(next);await save(next);setForm(EMPTY);setEI(null);setView("dash");
-    toast2(editIdx!==null?"Evaluación actualizada ✓":"Evaluación guardada ✓");
-  };
-
-  const doImport=async(p)=>{
-    setSI(false);
-    const e={date:p.date||new Date().toISOString().slice(0,10),weight:p.weight??null,muscleMass:p.muscleMass??null,fatMass:p.fatMass??null,fatPercent:p.fatPercent??null,waterLiters:p.waterLiters??null,boneMass:p.boneMass??null,bmi:p.bmi??null,visceralFat:p.visceralFat??null,bmr:p.bmr??null,inBodyScore:p.inBodyScore??null,notes:p.notes||"Importado desde PDF"};
-    const next=[...hist,e].sort((a,b)=>a.date.localeCompare(b.date));
-    setHist(next);await save(next);setView("dash");toast2("✓ InBody importado");
-  };
-
-  const del=async(i)=>{const next=hist.filter((_,j)=>j!==i);setHist(next);await save(next);toast2("Eliminado");};
-  const edit=i=>{const h=hist[i];setForm(Object.fromEntries(Object.keys(EMPTY).map(k=>[k,h[k]??''])));setEI(i);setView("add");};
-
-  const latest=hist[hist.length-1]||null;
-  const prev=hist[hist.length-2]||null;
-  const best=hist.reduce((b,h)=>(!b||(h.muscleMass>b.muscleMass))?h:b,null);
-  const cd=hist.map(h=>({label:dlabel(h.date),...Object.fromEntries(FIELDS.map(f=>[f.key,h[f.key]??null]))}));
-  const af=FIELDS.find(f=>f.key===chartKey)||FIELDS[0];
-
-  // ── STYLE HELPERS ──────────────────────────────────────────────────────────
-  const card=(ex={})=>({background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:16,...ex});
-  const btn=(p=false,sm=false,col=C.accent)=>({background:p?col:"transparent",color:p?C.bg:col,border:`1px solid ${col}`,borderRadius:10,padding:sm?"7px 14px":"11px 22px",fontFamily:FM,fontSize:sm?12:13,cursor:"pointer",fontWeight:600,WebkitTapHighlightColor:"transparent"});
-  const inp={background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,color:C.text,fontFamily:FM,fontSize:14,padding:"10px 14px",width:"100%"};
-  const e=React.createElement;
-
-  if(!loaded) return e("div",{style:{background:C.bg,height:"100vh",display:"flex",alignItems:"center",justifyContent:"center",color:C.accent,fontFamily:FM,fontSize:16}},"Cargando...");
-
-  // ── DASHBOARD ──────────────────────────────────────────────────────────────
-  const Dash=()=>e("div",{className:"fade-up",style:{display:"flex",flexDirection:"column",gap:14}},
-    // Hero card
-    e("div",{style:{...card(),display:"grid",gridTemplateColumns:"1fr auto",gap:16,alignItems:"center"}},
-      e("div",null,
-        e("div",{style:{fontFamily:FB,fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:6}},
-          latest?dfull(latest.date):"Sin datos"
-        ),
-        e("div",{style:{display:"flex",alignItems:"baseline",gap:8,marginBottom:6,flexWrap:"wrap"}},
-          e("span",{style:{fontFamily:FM,fontSize:42,color:C.accent,fontWeight:700,lineHeight:1}},latest?.inBodyScore??"—"),
-          e("span",{style:{fontFamily:FB,fontSize:12,color:C.muted}},"pts Score"),
-          latest&&prev&&(()=>{const d=pctDiff(latest.inBodyScore,prev.inBodyScore,"up");return d&&e(Badge,{delta:d.delta,positive:d.positive});})()
-        ),
-        e("div",{style:{fontFamily:FB,fontSize:12,color:C.muted,lineHeight:1.7}},
-          "Peso: ",e("span",{style:{color:C.text,fontFamily:FM}},fmt(latest?.weight)," kg"),
-          " · Músculo: ",e("span",{style:{color:C.muscle,fontFamily:FM}},fmt(latest?.muscleMass)," kg"),e("br"),
-          "Grasa: ",e("span",{style:{color:C.fat,fontFamily:FM}},fmt(latest?.fatMass)," kg"),
-          " · Visceral: ",e("span",{style:{color:C.bad,fontFamily:FM}},"niv. ",latest?.visceralFat)
-        )
-      ),
-      e(Gauge,{fatPct:latest?.fatPercent})
-    ),
-    // Best badge
-    best&&best.date!==latest?.date&&e("div",{style:{...card({padding:"12px 16px"}),borderColor:C.muscle,background:C.muscle+"11",display:"flex",alignItems:"center",gap:10}},
-      e("span",{style:{fontSize:20}},"🏆"),
-      e("div",null,
-        e("div",{style:{fontFamily:FM,fontSize:11,color:C.muscle}},"MEJOR MOMENTO — ",dfull(best.date)),
-        e("div",{style:{fontFamily:FB,fontSize:11,color:C.muted}},"Músculo: ",fmt(best.muscleMass)," kg · %Grasa: ",fmt(best.fatPercent),"%")
-      )
-    ),
-    // KPI grid
-    e("div",{style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}},
-      FIELDS.map(f=>{
-        const val=latest?.[f.key],d=pctDiff(latest?.[f.key],prev?.[f.key],f.good);
-        return e("div",{key:f.key,onClick:()=>{setCK(f.key);setView("chart");},
-          style:{...card({padding:"10px 12px",cursor:"pointer"}),
-            borderColor:chartKey===f.key?f.color:C.border,
-            boxShadow:chartKey===f.key?`0 0 0 1px ${f.color}44`:"none"}},
-          e("div",{style:{fontFamily:FB,fontSize:9,color:C.muted,letterSpacing:1,textTransform:"uppercase",marginBottom:4}},f.label),
-          e("div",{style:{fontFamily:FM,fontSize:17,color:f.color,fontWeight:700}},fmt(val),e("span",{style:{fontSize:9,color:C.muted,marginLeft:2}},f.unit)),
-          d&&e(Badge,{delta:d.delta,positive:d.positive})
-        );
-      })
-    ),
-    // Mini chart
-    hist.length>1&&e("div",{style:card()},
-      e("div",{style:{fontFamily:FB,fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:12}},"MÚSCULO vs % GRASA"),
-      e(ResponsiveContainer,{width:"100%",height:180},
-        e(AreaChart,{data:cd,margin:{top:4,right:4,left:-28,bottom:0}},
-          e("defs",null,
-            e("linearGradient",{id:"gM2",x1:"0",y1:"0",x2:"0",y2:"1"},e("stop",{offset:"5%",stopColor:C.muscle,stopOpacity:.3}),e("stop",{offset:"95%",stopColor:C.muscle,stopOpacity:0})),
-            e("linearGradient",{id:"gF2",x1:"0",y1:"0",x2:"0",y2:"1"},e("stop",{offset:"5%",stopColor:C.fat,stopOpacity:.3}),e("stop",{offset:"95%",stopColor:C.fat,stopOpacity:0}))
-          ),
-          e(CartesianGrid,{stroke:C.border,strokeDasharray:"3 3"}),
-          e(XAxis,{dataKey:"label",tick:{fill:C.muted,fontSize:10,fontFamily:FM}}),
-          e(YAxis,{tick:{fill:C.muted,fontSize:10,fontFamily:FM}}),
-          e(Tooltip,{content:e(CT)}),
-          e(Area,{type:"monotone",dataKey:"muscleMass",name:"Músculo",stroke:C.muscle,fill:"url(#gM2)",strokeWidth:2,dot:{fill:C.muscle,r:3,strokeWidth:0}}),
-          e(Area,{type:"monotone",dataKey:"fatPercent",name:"% Grasa",stroke:C.fat,fill:"url(#gF2)",strokeWidth:2,dot:{fill:C.fat,r:3,strokeWidth:0}})
-        )
-      )
-    ),
-    // Comparativa
-    latest&&prev&&e("div",{style:card()},
-      e("div",{style:{fontFamily:FB,fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:12}},"COMPARATIVA ",dlabel(prev.date)," → ",dlabel(latest.date)),
-      e("div",{style:{display:"flex",flexDirection:"column",gap:8}},
-        FIELDS.map(f=>{
-          const vC=latest[f.key],vP=prev[f.key];
-          if(!vC||!vP||isNaN(vC)||isNaN(vP)) return null;
-          const d=pctDiff(vC,vP,f.good),bw=Math.min(Math.abs(vC-vP)/Math.abs(vP)*100*8,100);
-          return e("div",{key:f.key,style:{display:"grid",gridTemplateColumns:"80px 1fr auto",alignItems:"center",gap:8}},
-            e("span",{style:{fontFamily:FB,fontSize:11,color:C.muted}},f.label),
-            e("div",{style:{background:C.surface,borderRadius:4,height:4,overflow:"hidden"}},
-              e("div",{style:{height:"100%",width:bw+"%",background:d?.positive?C.good:C.bad,borderRadius:4}})
-            ),
-            d&&e(Badge,{delta:d.delta,positive:d.positive})
-          );
-        })
-      )
-    )
-  );
-
-  // ── CHART VIEW ─────────────────────────────────────────────────────────────
-  const Chart=()=>{
-    const proj=project(hist,chartKey,3);
-    const full=[...cd.map(d=>({...d,projected:null})),...proj.map(d=>({label:dlabel(d.date),[chartKey]:null,projected:d.projected}))];
-    return e("div",{className:"fade-up",style:{display:"flex",flexDirection:"column",gap:14}},
-      e("div",{style:{display:"flex",gap:6,flexWrap:"wrap"}},
-        FIELDS.map(f=>e("button",{key:f.key,onClick:()=>setCK(f.key),
-          style:{...btn(chartKey===f.key,true,f.color),fontSize:11}},f.label))
-      ),
-      e("div",{style:card()},
-        e("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:12,flexWrap:"wrap",gap:8}},
-          e("div",null,
-            e("div",{style:{fontFamily:FM,fontSize:24,color:af.color,fontWeight:700}},fmt(latest?.[chartKey])," ",e("span",{style:{fontSize:12,color:C.muted}},af.unit)),
-            e("div",{style:{fontFamily:FB,fontSize:11,color:C.muted}},af.label)
-          ),
-          proj.length>0&&e("div",{style:{textAlign:"right"}},
-            e("div",{style:{fontFamily:FB,fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:1}},"Proyección +3m"),
-            e("div",{style:{fontFamily:FM,fontSize:18,color:C.muted}},fmt(proj[proj.length-1]?.projected)," ",af.unit)
-          )
-        ),
-        e(ResponsiveContainer,{width:"100%",height:230},
-          e(LineChart,{data:full,margin:{top:4,right:8,left:-28,bottom:0}},
-            e(CartesianGrid,{stroke:C.border,strokeDasharray:"3 3"}),
-            e(XAxis,{dataKey:"label",tick:{fill:C.muted,fontSize:10,fontFamily:FM}}),
-            e(YAxis,{tick:{fill:C.muted,fontSize:10,fontFamily:FM}}),
-            e(Tooltip,{content:e(CT)}),
-            e(Legend,{wrapperStyle:{fontFamily:FM,fontSize:10}}),
-            e(Line,{type:"monotone",dataKey:chartKey,name:af.label,stroke:af.color,strokeWidth:2.5,dot:{fill:af.color,r:3,strokeWidth:0},connectNulls:false}),
-            e(Line,{type:"monotone",dataKey:"projected",name:"Proyección",stroke:C.muted,strokeDasharray:"5 4",strokeWidth:1.5,dot:{fill:C.muted,r:2,strokeWidth:0},connectNulls:false})
-          )
-        )
-      ),
-      hist.length>1&&e("div",{style:card()},
-        e("div",{style:{fontFamily:FB,fontSize:10,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:12}},"Δ CAMBIO SESIÓN A SESIÓN"),
-        e(ResponsiveContainer,{width:"100%",height:130},
-          e(BarChart,{data:hist.slice(1).map((h,i)=>({label:dlabel(h.date),delta:h[chartKey]!=null&&hist[i][chartKey]!=null?parseFloat((h[chartKey]-hist[i][chartKey]).toFixed(2)):0})),margin:{top:4,right:8,left:-28,bottom:0}},
-            e(CartesianGrid,{stroke:C.border,strokeDasharray:"3 3"}),
-            e(XAxis,{dataKey:"label",tick:{fill:C.muted,fontSize:10,fontFamily:FM}}),
-            e(YAxis,{tick:{fill:C.muted,fontSize:10,fontFamily:FM}}),
-            e(Tooltip,{content:e(CT)}),
-            e(ReferenceLine,{y:0,stroke:C.muted}),
-            e(Bar,{dataKey:"delta",name:"Δ",fill:af.color,radius:[4,4,0,0]})
-          )
-        )
-      )
-    );
-  };
-
-  // ── HISTORY ────────────────────────────────────────────────────────────────
-  const Hist=()=>e("div",{className:"fade-up",style:{display:"flex",flexDirection:"column",gap:10}},
-    [...hist].reverse().map((h,ri)=>{
-      const idx=hist.length-1-ri,p=idx>0?hist[idx-1]:null;
-      return e("div",{key:idx,style:card({padding:"14px 16px"})},
-        e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}},
-          e("div",null,
-            e("div",{style:{fontFamily:FM,fontSize:13,color:C.accent}},dfull(h.date)),
-            h.inBodyScore&&e("div",{style:{fontFamily:FM,fontSize:12,color:C.good}},"Score ",h.inBodyScore," pts")
-          ),
-          e("div",{style:{display:"flex",gap:8}},
-            e("button",{style:btn(false,true),onClick:()=>edit(idx)},"Editar"),
-            e("button",{style:btn(false,true,C.bad),onClick:()=>del(idx)},"×")
-          )
-        ),
-        e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}},
-          FIELDS.map(f=>{
-            if(!h[f.key]&&h[f.key]!==0) return null;
-            const d=p?pctDiff(h[f.key],p[f.key],f.good):null;
-            return e("div",{key:f.key,style:{fontFamily:FM,fontSize:11}},
-              e("span",{style:{color:C.muted}},f.label,": "),
-              e("span",{style:{color:f.color}},fmt(h[f.key]),f.unit),
-              d&&e(Badge,{delta:d.delta,positive:d.positive})
-            );
-          })
-        ),
-        h.notes&&e("div",{style:{marginTop:8,fontFamily:FB,fontSize:11,color:C.muted,borderLeft:`2px solid ${C.accent}`,paddingLeft:8,fontStyle:"italic"}},h.notes)
-      );
-    })
-  );
-
-  // ── ADD ────────────────────────────────────────────────────────────────────
-  const Add=()=>e("div",{className:"fade-up",style:{display:"flex",flexDirection:"column",gap:14,maxWidth:500,margin:"0 auto"}},
-    editIdx===null&&e("div",{style:{...card({padding:"14px 16px"}),borderColor:C.accent+"55",background:C.accent+"08"}},
-      e("div",{style:{fontFamily:FM,fontSize:11,color:C.accent,letterSpacing:1,marginBottom:8}},"📄 IMPORTAR DESDE PDF"),
-      e("div",{style:{fontFamily:FB,fontSize:12,color:C.muted,marginBottom:12,lineHeight:1.6}},"Sube el PDF en el ",e("strong",{style:{color:C.text}},"chat de Claude")," → pide que lo lea → copia el JSON → pégalo aquí."),
-      e("button",{style:btn(true,true),onClick:()=>setSI(true)},"📋 Pegar JSON del InBody")
-    ),
-    e("div",{style:card()},
-      e("div",{style:{fontFamily:FB,fontSize:11,color:C.muted,letterSpacing:2,textTransform:"uppercase",marginBottom:14}},editIdx!==null?"EDITAR EVALUACIÓN":"INGRESAR MANUALMENTE"),
-      e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
-        e("div",{style:{gridColumn:"1/-1"}},
-          e("label",{style:{fontFamily:FB,fontSize:11,color:C.muted,display:"block",marginBottom:4}},"Fecha *"),
-          e("input",{type:"date",value:form.date,onChange:ev=>setForm(p=>({...p,date:ev.target.value})),style:inp})
-        ),
-        FIELDS.map(f=>e("div",{key:f.key},
-          e("label",{style:{fontFamily:FB,fontSize:11,color:C.muted,display:"block",marginBottom:4}},f.label,f.unit?" ("+f.unit+")":""),
-          e("input",{type:"number",step:"0.1",placeholder:"—",value:form[f.key],
-            onChange:ev=>setForm(p=>({...p,[f.key]:ev.target.value})),
-            style:{...inp,borderColor:form[f.key]?f.color+"88":C.border}})
-        )),
-        e("div",{style:{gridColumn:"1/-1"}},
-          e("label",{style:{fontFamily:FB,fontSize:11,color:C.muted,display:"block",marginBottom:4}},"Notas"),
-          e("textarea",{rows:3,value:form.notes,onChange:ev=>setForm(p=>({...p,notes:ev.target.value})),
-            style:{...inp,resize:"vertical",fontFamily:FB}})
-        )
-      ),
-      e("div",{style:{display:"flex",gap:10,marginTop:14,justifyContent:"flex-end"}},
-        e("button",{style:btn(),onClick:()=>{setForm(EMPTY);setEI(null);setView("dash");}},"Cancelar"),
-        e("button",{style:btn(true),onClick:submit},saving?"Guardando…":editIdx!==null?"Actualizar":"Guardar")
-      )
-    )
-  );
-
-  // ── BOTTOM NAV ──────────────────────────────────────────────────────────────
-  const NAV=[
-    {id:"dash",   icon:"📊", label:"Inicio"},
-    {id:"chart",  icon:"📈", label:"Gráficos"},
-    {id:"hist",   icon:"📋", label:"Historial"},
-    {id:"add",    icon:"➕", label:"Agregar"},
-  ];
-
-  return e("div",{style:{background:C.bg,minHeight:"100vh",color:C.text,fontFamily:FB}},
-    showImport&&e(ImportModal,{onClose:()=>setSI(false),onImport:doImport}),
-
-    // Top bar
-    e("div",{className:"nav-bar",style:{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"12px 16px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:100}},
-      e("div",{style:{fontFamily:FM,fontSize:14,color:C.accent,fontWeight:700,letterSpacing:1}},"INBODY ",e("span",{style:{color:C.muted}},"· JOSE")),
-      e("div",{style:{fontFamily:FM,fontSize:10,color:C.muted}},saving?"Guardando…":hist.length+" evaluaciones")
-    ),
-
-    // Page content
-    e("div",{className:"page",style:{padding:"16px 14px",maxWidth:600,margin:"0 auto"}},
-      view==="dash"  && e(Dash),
-      view==="chart" && e(Chart),
-      view==="hist"  && e(Hist),
-      view==="add"   && e(Add)
-    ),
-
-    // Bottom nav
-    e("div",{className:"bottom-nav",style:{position:"fixed",bottom:0,left:0,right:0,background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",zIndex:100}},
-      NAV.map(n=>e("button",{key:n.id,onClick:()=>{setView(n.id);if(n.id==="add"){setForm(EMPTY);setEI(null);}},
-        style:{flex:1,background:"none",border:"none",cursor:"pointer",padding:"10px 4px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,
-          color:view===n.id?C.accent:C.muted,borderTop:view===n.id?`2px solid ${C.accent}`:"2px solid transparent"}},
-        e("span",{style:{fontSize:20}},n.icon),
-        e("span",{style:{fontFamily:FM,fontSize:9,letterSpacing:.5}},n.label)
-      ))
-    ),
-
-    // Toast
-    toast&&e("div",{style:{position:"fixed",bottom:74,left:"50%",transform:"translateX(-50%)",zIndex:300,background:toast.ok?C.good:C.bad,color:"#fff",padding:"10px 20px",borderRadius:20,fontFamily:FM,fontSize:13,boxShadow:"0 4px 20px #0009",whiteSpace:"nowrap"}},toast.msg)
-  );
+    html += `</div>`;
+  }
+  html += `</div>`;
+  return html;
 }
 
-ReactDOM.render(React.createElement(App), document.getElementById("root"));
+function renderChart() {
+  const af = FIELDS.find(f=>f.key===chartKey)||FIELDS[0];
+  const l = hist[hist.length-1];
+  const proj = project(chartKey, 3);
 
-// ── SERVICE WORKER ────────────────────────────────────────────────────────────
-if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("/sw.js").then(()=>console.log("SW registered")).catch(e=>console.warn("SW failed:",e));
+  let html = `<div class="section fade">
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">`;
+  FIELDS.forEach(f => {
+    html += `<button class="btn sm" style="border-color:${f.color};color:${chartKey===f.key?'#0B0F1A':f.color};background:${chartKey===f.key?f.color:'transparent'}" onclick="setCK('${f.key}')">${f.label}</button>`;
+  });
+  html += `</div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:26px;color:${af.color};font-weight:700">${fmt(l?.[chartKey])} <span style="font-size:13px;color:#64748B">${af.unit}</span></div>
+        <div style="font-size:11px;color:#64748B">${af.label} · última evaluación</div>
+      </div>
+      ${proj.length?`<div style="text-align:right">
+        <div style="font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:1px">Proyección +3m</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:18px;color:#64748B">${fmt(proj[proj.length-1]?.val)} ${af.unit}</div>
+      </div>`:""}
+    </div>
+    <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
+  </div>`;
+
+  // Delta chart
+  if (hist.length > 1) {
+    html += `<div class="card">
+      <div style="font-size:10px;color:#64748B;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Δ CAMBIO SESIÓN A SESIÓN</div>
+      <div class="chart-wrap" style="height:150px"><canvas id="deltaChart"></canvas></div>
+    </div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function renderHist() {
+  if (!hist.length) return `<div class="card" style="text-align:center;padding:32px;color:#64748B">Sin evaluaciones</div>`;
+  let html = `<div class="section fade">`;
+  [...hist].reverse().forEach((h,ri) => {
+    const idx=hist.length-1-ri, p=idx>0?hist[idx-1]:null;
+    html += `<div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#00D4FF">${dfull(h.date)}</div>
+          ${h.inBodyScore?`<div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#22C55E">Score ${h.inBodyScore} pts</div>`:""}
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn sm" onclick="doEdit(${idx})">Editar</button>
+          <button class="btn sm danger" onclick="doDel(${idx})">×</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
+    FIELDS.forEach(f => {
+      if (!h[f.key] && h[f.key]!==0) return;
+      const d=p?pctDiff(h[f.key],p[f.key],f.good):null;
+      html += `<div style="font-family:'JetBrains Mono',monospace;font-size:11px">
+        <span style="color:#64748B">${f.label}: </span>
+        <span style="color:${f.color}">${fmt(h[f.key])}${f.unit}</span>
+        ${d?badge(d.delta,d.positive):""}
+      </div>`;
+    });
+    html += `</div>`;
+    if (h.notes) html += `<div style="margin-top:8px;font-size:11px;color:#64748B;border-left:2px solid #00D4FF;padding-left:8px;font-style:italic">${h.notes}</div>`;
+    html += `</div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+// ── FORM STATE ──────────────────────────────────────────────────────────────────
+const EMPTY_FORM = {date:new Date().toISOString().slice(0,10),weight:"",muscleMass:"",fatMass:"",fatPercent:"",waterLiters:"",boneMass:"",bmi:"",visceralFat:"",bmr:"",inBodyScore:"",notes:""};
+let currentForm = {...EMPTY_FORM};
+
+function renderAdd() {
+  let html = `<div class="section fade">`;
+  if (editIdx===null) {
+    html += `<div class="card" style="border-color:#00D4FF55;background:#00D4FF08">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#00D4FF;letter-spacing:1px;margin-bottom:8px">📄 IMPORTAR DESDE PDF</div>
+      <div style="font-size:12px;color:#64748B;margin-bottom:12px;line-height:1.6">Sube el PDF en el <strong style="color:#E2E8F0">chat de Claude</strong> → pide que lo lea → copia el JSON → pégalo aquí.</div>
+      <button class="btn sm primary" onclick="openImport()">📋 Pegar JSON del InBody</button>
+    </div>`;
+  }
+  html += `<div class="card">
+    <div style="font-size:11px;color:#64748B;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px">${editIdx!==null?"EDITAR EVALUACIÓN":"INGRESAR MANUALMENTE"}</div>
+    <div class="form-grid">
+      <div class="form-full">
+        <label>Fecha *</label>
+        <input type="date" id="f-date" value="${currentForm.date}"/>
+      </div>`;
+  FIELDS.forEach(f => {
+    html += `<div>
+      <label>${f.label}${f.unit?" ("+f.unit+")":""}</label>
+      <input type="number" step="0.1" placeholder="—" id="f-${f.key}" value="${currentForm[f.key]??""}" style="border-color:${currentForm[f.key]?f.color+"88":"#1F2D45"}"/>
+    </div>`;
+  });
+  html += `<div class="form-full">
+        <label>Notas</label>
+        <textarea id="f-notes" rows="3" placeholder="Comentarios del nutricionista…">${currentForm.notes||""}</textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px;justify-content:flex-end">
+      <button class="btn" onclick="cancelForm()">Cancelar</button>
+      <button class="btn primary" onclick="submitForm()">${editIdx!==null?"Actualizar":"Guardar"}</button>
+    </div>
+  </div></div>`;
+  return html;
+}
+
+// ── IMPORT MODAL ───────────────────────────────────────────────────────────────
+let importPreview = null;
+function openImport() {
+  importPreview = null;
+  const bg = document.createElement("div");
+  bg.className = "modal-bg"; bg.id = "import-modal";
+  bg.innerHTML = `<div class="modal">
+    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#00D4FF;font-weight:700">IMPORTAR INBODY</div>
+      <button onclick="closeImport()" style="background:none;border:none;color:#64748B;font-size:24px;padding:4px">×</button>
+    </div>
+    <div style="background:#131929;border-radius:12px;padding:14px;margin-bottom:14px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#00D4FF;margin-bottom:10px;letter-spacing:1px">CÓMO IMPORTAR</div>
+      ${[["1","Sube el PDF en el chat de Claude","botón 📎 en la conversación"],
+         ["2","Escribe: 'léeme este InBody'","Claude extrae todos los datos"],
+         ["3","Copia el JSON que te responde",""],
+         ["4","Pégalo abajo y confirma",""]
+        ].map(([n,t,d])=>`<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:8px">
+          <div style="background:#00D4FF;color:#0B0F1A;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;flex-shrink:0">${n}</div>
+          <div><div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#E2E8F0">${t}</div>${d?`<div style="font-size:11px;color:#64748B">${d}</div>`:""}</div>
+        </div>`).join("")}
+    </div>
+    <label style="font-size:11px;color:#64748B;letter-spacing:1px;display:block;margin-bottom:6px">PEGA EL JSON AQUÍ</label>
+    <textarea id="import-json" rows="6" placeholder='{"date":"2026-04-23","weight":93.2,"muscleMass":36.8,...}' style="width:100%;background:#131929;border:1px solid #1F2D45;border-radius:10px;color:#E2E8F0;font-family:'JetBrains Mono',monospace;font-size:12px;padding:12px 14px;margin-bottom:10px"></textarea>
+    <div id="import-err" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#EF4444;margin-bottom:10px;display:none"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn" onclick="closeImport()">Cancelar</button>
+      <button class="btn primary" onclick="parseImport()">Revisar →</button>
+    </div>
+  </div>`;
+  document.body.appendChild(bg);
+}
+
+function parseImport() {
+  const raw = document.getElementById("import-json").value;
+  const errEl = document.getElementById("import-err");
+  try {
+    const s = raw.trim().replace(/```(?:json)?/gi,"").trim();
+    const m = s.match(/\{[\s\S]*\}/);
+    if (!m) throw new Error("No se encontró JSON válido");
+    const p = JSON.parse(m[0]);
+    if (!p.date && !p.weight) throw new Error("JSON inválido (falta fecha o peso)");
+    importPreview = p;
+    // Show preview
+    const modal = document.querySelector(".modal");
+    modal.innerHTML = `<div class="modal-handle"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#00D4FF;font-weight:700">IMPORTAR INBODY</div>
+        <button onclick="closeImport()" style="background:none;border:none;color:#64748B;font-size:24px;padding:4px">×</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="font-size:22px">✅</span>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#22C55E;font-weight:600">Datos listos para guardar</div>
+      </div>
+      <div style="background:#131929;border-radius:10px;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-bottom:14px">
+        ${[["Fecha",p.date],["Peso",p.weight!=null?p.weight+" kg":null],["Músculo",p.muscleMass!=null?p.muscleMass+" kg":null],
+           ["% Grasa",p.fatPercent!=null?p.fatPercent+"%":null],["Grasa",p.fatMass!=null?p.fatMass+" kg":null],
+           ["Agua",p.waterLiters!=null?p.waterLiters+" L":null],["Visceral",p.visceralFat!=null?"Niv. "+p.visceralFat:null],
+           ["Metabolismo",p.bmr!=null?p.bmr+" kcal":null],["Score",p.inBodyScore!=null?p.inBodyScore+" pts":null]
+          ].filter(([,v])=>v!=null).map(([l,v])=>`<div><div style="font-size:10px;color:#64748B;margin-bottom:2px">${l}</div><div style="font-family:'JetBrains Mono',monospace;font-size:13px">${v}</div></div>`).join("")}
+      </div>
+      ${p.notes?`<div style="font-size:12px;color:#64748B;font-style:italic;border-left:2px solid #00D4FF;padding-left:10px;margin-bottom:14px">${p.notes}</div>`:""}
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn" onclick="closeImport();openImport()">← Editar</button>
+        <button class="btn success primary" onclick="confirmImport()">✓ Añadir</button>
+      </div>`;
+  } catch(e) {
+    errEl.textContent = "❌ " + e.message;
+    errEl.style.display = "block";
+  }
+}
+
+function confirmImport() {
+  if (!importPreview) return;
+  const p = importPreview;
+  const entry = {
+    date:p.date||new Date().toISOString().slice(0,10),
+    weight:p.weight??null, muscleMass:p.muscleMass??null, fatMass:p.fatMass??null,
+    fatPercent:p.fatPercent??null, waterLiters:p.waterLiters??null, boneMass:p.boneMass??null,
+    bmi:p.bmi??null, visceralFat:p.visceralFat??null, bmr:p.bmr??null,
+    inBodyScore:p.inBodyScore??null, notes:p.notes||"Importado desde PDF"
+  };
+  hist = [...hist, entry].sort((a,b)=>a.date.localeCompare(b.date));
+  save(); closeImport(); nav("dash"); showToast("✓ InBody importado");
+}
+
+function closeImport() {
+  const el = document.getElementById("import-modal");
+  if (el) el.remove();
+}
+
+// ── FORM ACTIONS ───────────────────────────────────────────────────────────────
+function readForm() {
+  const get = id => document.getElementById(id)?.value||"";
+  currentForm.date = get("f-date");
+  FIELDS.forEach(f => { currentForm[f.key] = get("f-"+f.key); });
+  currentForm.notes = get("f-notes");
+}
+
+function submitForm() {
+  readForm();
+  if (!currentForm.date) { showToast("Agrega una fecha",false); return; }
+  const entry = {notes:currentForm.notes||"", date:currentForm.date};
+  FIELDS.forEach(f => { entry[f.key] = currentForm[f.key]===""||currentForm[f.key]==null ? null : parseFloat(currentForm[f.key]); });
+  if (editIdx!==null) hist[editIdx]=entry;
+  else hist = [...hist, entry].sort((a,b)=>a.date.localeCompare(b.date));
+  save(); editIdx=null; currentForm={...EMPTY_FORM};
+  nav("dash"); showToast(editIdx!==null?"Actualizado ✓":"Guardado ✓");
+}
+
+function cancelForm() { editIdx=null; currentForm={...EMPTY_FORM}; nav("dash"); }
+function doEdit(i) { editIdx=i; currentForm=Object.fromEntries(Object.keys(EMPTY_FORM).map(k=>[k,hist[i][k]??''])); nav("add"); }
+function doDel(i) { if(!confirm("¿Eliminar esta evaluación?")) return; hist.splice(i,1); save(); render(); showToast("Eliminado"); }
+function setCK(k) { chartKey=k; if(activeChart){activeChart.destroy();activeChart=null;} nav("chart"); }
+
+// ── CHART INIT ─────────────────────────────────────────────────────────────────
+function initCharts() {
+  const labels = hist.map(h=>dlabel(h.date));
+
+  // Mini chart (dash)
+  const mc = document.getElementById("miniChart");
+  if (mc) {
+    if (activeChart) activeChart.destroy();
+    activeChart = new Chart(mc, {
+      type:"line",
+      data:{
+        labels,
+        datasets:[
+          {label:"Músculo (kg)",data:hist.map(h=>h.muscleMass),borderColor:"#818CF8",backgroundColor:"#818CF822",tension:.3,pointRadius:4,fill:true},
+          {label:"% Grasa",data:hist.map(h=>h.fatPercent),borderColor:"#F97316",backgroundColor:"#F9731622",tension:.3,pointRadius:4,fill:true},
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#64748B",font:{size:10}}}},scales:{x:{ticks:{color:"#64748B",font:{size:10}},grid:{color:"#1F2D45"}},y:{ticks:{color:"#64748B",font:{size:10}},grid:{color:"#1F2D45"}}}}
+    });
+  }
+
+  // Main chart (chart view)
+  const mch = document.getElementById("mainChart");
+  if (mch) {
+    if (activeChart) activeChart.destroy();
+    const af = FIELDS.find(f=>f.key===chartKey)||FIELDS[0];
+    const proj = project(chartKey,3);
+    const projLabels = proj.map(p=>dlabel(p.date));
+    const allLabels = [...labels, ...projLabels];
+    const realData = [...hist.map(h=>h[chartKey]??null), ...proj.map(()=>null)];
+    const projData = [...hist.map(()=>null), ...proj.map(p=>p.val)];
+    activeChart = new Chart(mch, {
+      type:"line",
+      data:{
+        labels:allLabels,
+        datasets:[
+          {label:af.label,data:realData,borderColor:af.color,backgroundColor:af.color+"22",tension:.3,pointRadius:4,fill:true,spanGaps:false},
+          {label:"Proyección",data:projData,borderColor:"#64748B",borderDash:[6,4],tension:.3,pointRadius:3,fill:false,spanGaps:false},
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:"#64748B",font:{size:10}}}},scales:{x:{ticks:{color:"#64748B",font:{size:10}},grid:{color:"#1F2D45"}},y:{ticks:{color:"#64748B",font:{size:10}},grid:{color:"#1F2D45"}}}}
+    });
+  }
+
+  // Delta chart
+  const dc = document.getElementById("deltaChart");
+  if (dc && hist.length>1) {
+    const af=FIELDS.find(f=>f.key===chartKey)||FIELDS[0];
+    const deltas=hist.slice(1).map((h,i)=>h[chartKey]!=null&&hist[i][chartKey]!=null?parseFloat((h[chartKey]-hist[i][chartKey]).toFixed(2)):0);
+    const dLabels=hist.slice(1).map(h=>dlabel(h.date));
+    new Chart(dc,{
+      type:"bar",
+      data:{labels:dLabels,datasets:[{label:"Δ Cambio",data:deltas,backgroundColor:deltas.map(d=>d>0?"#22C55E88":"#EF444488"),borderColor:deltas.map(d=>d>0?"#22C55E":"#EF4444"),borderWidth:1,borderRadius:4}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#64748B",font:{size:10}},grid:{color:"#1F2D45"}},y:{ticks:{color:"#64748B",font:{size:10}},grid:{color:"#1F2D45"}}}}
+    });
+  }
+}
+
+// ── RENDER ──────────────────────────────────────────────────────────────────────
+function render() {
+  document.getElementById("eval-count").textContent = hist.length+" evaluaciones";
+  const content = document.getElementById("content");
+  if (view==="dash")  content.innerHTML = renderDash();
+  if (view==="chart") content.innerHTML = renderChart();
+  if (view==="hist")  content.innerHTML = renderHist();
+  if (view==="add")   content.innerHTML = renderAdd();
+  // Init charts after DOM update
+  requestAnimationFrame(() => initCharts());
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
+load();
+render();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(()=>{});
   });
 }
 </script>
